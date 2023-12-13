@@ -14,3 +14,12 @@ Streaming Application with Integration of powerful ChatGPT API
 - Use ChatGPT API and Make StreamzGPT Page
   - Make Search Bar
   - Get Movie Suggestions out of ChatGPT API
+
+# Implemented Till Now
+- Created React App (CRA)
+- Confugured Tailwind CSS
+- Made Header Component
+- Added Routing in App
+- Created Login and Sign Up Form
+- Form Validation
+- Used `useRef` hook
