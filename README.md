@@ -23,3 +23,5 @@ Streaming Application with Integration of powerful ChatGPT API
 - Created Login and Sign Up Form
 - Form Validation
 - Used `useRef` hook
+- Firebase Setup
+- Deploying our project to Firebase.
