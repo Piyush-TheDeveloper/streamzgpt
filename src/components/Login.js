@@ -1,11 +1,16 @@
 import React, { useRef, useState } from "react";
 import { validateForm } from "../utils/validate";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import Header from "./Header";
+import { auth } from "../utils/firebase";
 
 const Login = () => {
   const [isSignInForm, setIsSignInForm] = useState(true);
   const [errorMessage, setErrorMessage] = useState(false);
+  const [loader, setLoader] = useState(false);
   const email = useRef(null);
   const password = useRef(null);
 
@@ -13,17 +18,73 @@ const Login = () => {
     setIsSignInForm(!isSignInForm);
   };
   const handleButtonClick = () => {
+    console.log(
+      "am here ",
+      !isSignInForm,
+      auth,
+      email.current.value,
+      password.current.value
+    );
     //Validate Form Data
     const message = validateForm(email.current.value, password.current.value);
     setErrorMessage(message);
-    if(message) return;
+    if (message.success) return;
 
     /*******SignIn/SignUp Logic Starts here************/
-
-    if(!isSignInForm){
-        //Sign Up Logic
-    }else{
-        //Sign In Logic
+    setLoader(true);
+    if (!isSignInForm) {
+      //Sign Up Logic
+      console.log("am in if ");
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          // Signed up
+          setLoader(false);
+          console.log(userCredential);
+          const user = userCredential.user;
+          console.log(user);
+          // ...
+        })
+        .catch((error) => {
+          setLoader(false);
+          // const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage({
+            success: true,
+            msg:
+              errorMessage === "Firebase: Error (auth/email-already-in-use)."
+                ? "User already exist"
+                : "",
+          });
+          // ..
+        });
+    } else {
+      //Sign In Logic
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          setLoader(false);
+          const user = userCredential.user;
+          console.log(user);
+        })
+        .catch((error) => {
+          setLoader(false);
+          const errorMessage = error.message;
+          setErrorMessage({
+            success: true,
+            msg:
+              errorMessage === "Firebase: Error (auth/invalid-credential)."
+                ? "User Doesn't Exist"
+                : "",
+          });
+          console.log(errorMessage);
+        });
     }
   };
 
@@ -57,31 +118,23 @@ const Login = () => {
           ref={email}
           className="p-4 my-4 bg-[#333] rounded-md w-full"
         />
-        {errorMessage.email && (
-          <span className="text-sm m-2 text-[#e87c03] font-semibold">
-            {errorMessage.email}
-          </span>
-        )}
         <input
           type="password"
           placeholder="Password"
           ref={password}
+          autoComplete="on"
           className="p-4 my-4 bg-[#333] rounded-md w-full"
         />
-        {errorMessage.password && (
-          <span className="text-sm  m-2 text-[#e87c03] font-semibold">
-            {errorMessage.password}
-          </span>
-        )}
+
         <button
           className="p-4 my-6 bg-red-700 rounded-md w-full"
           onClick={handleButtonClick}
-        > 
-          {isSignInForm ? "Sign In" : "Sign Up"}
+        >
+          {loader ? <p>Loading...</p> : isSignInForm ? "Sign In" : "Sign Up"}
         </button>
-        {errorMessage.general && (
+        {errorMessage.msg && (
           <span className="text-sm  m-2 text-[#e87c03]">
-            {errorMessage.general}
+            {errorMessage.msg}
           </span>
         )}
         <p onClick={toggleSignInForm} className="py-4 m-2 cursor-pointer">
