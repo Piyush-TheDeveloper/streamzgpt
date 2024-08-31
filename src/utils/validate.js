@@ -1,27 +1,24 @@
 export const validateForm = (email, password) => {
-  let errors = {
-    success: false,
-    msg: "",
-  };
+  let errorMsg = ''
   //   const isNameValid = /^[a-zA-Z\\s]*$/.test(name);
   const isEmailValid = /^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/.test(
-    email
-  );
+    email,
+  )
   const isPasswordValid =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&^])[A-Za-z\d@.#$!%*?&]{8,15}$/.test(
-      password
-    );
+      password,
+    )
 
   if (!isPasswordValid && !isEmailValid) {
-    errors.msg = "Email & Password is not valid";
-    errors.success = true;
+    errorMsg = 'Email & Password is not valid'
   } else if (!isEmailValid) {
-    errors.msg = "Email is not valid";
-    errors.success = true;
+    errorMsg = 'Email is not valid'
   } else if (!isPasswordValid) {
-    errors.msg = "Password is not valid";
-    errors.success = true;
+    errorMsg = 'Password is not valid'
   }
 
-  return errors;
-};
+  return {
+    success: isEmailValid && isPasswordValid,
+    msg: errorMsg,
+  }
+}
