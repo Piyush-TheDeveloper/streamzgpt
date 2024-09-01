@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth'
 import Header from './Header'
 import { auth } from '../utils/firebase'
+import { LOGIN_PAGE_BACKGROUND } from '../utils/constants'
 
 const Login = () => {
   const [isSignInForm, setIsSignInForm] = useState(true)
@@ -153,7 +154,7 @@ const Login = () => {
       <div className='absolute bg-gradient-to-b from-gray-800 to-gray-600'>
         <img
           className='mix-blend-overlay'
-          src='https://assets.nflxext.com/ffe/siteui/vlv3/b4c7f092-0488-48b7-854d-ca055a84fb4f/5b22968d-b94f-44ec-bea3-45dcf457f29e/IN-en-20231204-popsignuptwoweeks-perspective_alpha_website_large.jpg'
+          src={LOGIN_PAGE_BACKGROUND}
           alt='Logo'
         />
       </div>
@@ -226,7 +227,35 @@ const Login = () => {
           className='p-4 my-6 bg-red-700 rounded-md w-full'
           onClick={handleButtonClick}
         >
-          {loader ? <p>Loading...</p> : isSignInForm ? 'Sign In' : 'Sign Up'}
+          {loader ? (
+            <>
+              <svg
+                class='animate-spin -ml-1 mr-3 h-5 w-5 text-white'
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
+              >
+                <circle
+                  class='opacity-25'
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  stroke-width='4'
+                ></circle>
+                <path
+                  class='opacity-75'
+                  fill='currentColor'
+                  d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                ></path>
+              </svg>
+              {isSignInForm ? 'Signing In...' : 'Signing Up...'}
+            </>
+          ) : isSignInForm ? (
+            'Sign In'
+          ) : (
+            'Sign Up'
+          )}
         </button>
         {errorMessage.msg && (
           <span className='text-sm  m-2 text-[#e87c03]'>

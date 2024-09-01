@@ -10,6 +10,8 @@ import { getAuth } from 'firebase/auth'
 const firebaseConfig = {
   apiKey: 'AIzaSyBph8qKGhK9aC8rCiEvZiqyAXeWwV5Rjug',
   authDomain: 'streamzgpt.firebaseapp.com',
+  databaseURL:
+    'https://streamzgpt-default-rtdb.asia-southeast1.firebasedatabase.app',
   projectId: 'streamzgpt',
   storageBucket: 'streamzgpt.appspot.com',
   messagingSenderId: '741788196167',
