@@ -3,12 +3,18 @@ import { validateForm } from '../utils/validate'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth'
 import Header from './Header'
 import { auth } from '../utils/firebase'
-import { LOGIN_PAGE_BACKGROUND } from '../utils/constants'
+import { LOGIN_PAGE_BACKGROUND, PROFILE_PHOTO } from '../utils/constants'
+import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { addUser } from '../store/userSlice'
 
 const Login = () => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
   const [isSignInForm, setIsSignInForm] = useState(true)
   const [errorMessage, setErrorMessage] = useState(false)
   const [loader, setLoader] = useState(false)
@@ -19,6 +25,7 @@ const Login = () => {
     digit: false,
     specialChar: false,
   })
+  const name = useRef(null)
   const email = useRef(null)
   const password = useRef(null)
 
@@ -46,13 +53,6 @@ const Login = () => {
     if (password.current) password.current.value = ''
   }
   const handleButtonClick = async () => {
-    console.log(
-      'am here ',
-      !isSignInForm,
-      auth,
-      email.current.value,
-      password.current.value,
-    )
     //Validate Form Data
     const { success, msg } = validateForm(
       email.current.value,
@@ -63,73 +63,45 @@ const Login = () => {
 
     /*******SignIn/SignUp Logic Starts here************/
     setLoader(true)
-    // if (!isSignInForm) {
-    //   //Sign Up Logic
-    //   console.log('am in if ')
-    //   createUserWithEmailAndPassword(
-    //     auth,
-    //     email.current.value,
-    //     password.current.value,
-    //   )
-    //     .then(userCredential => {
-    //       // Signed up
-    //       setLoader(false)
-    //       console.log(userCredential)
-    //       const user = userCredential.user
-    //       console.log(user)
-    //       // ...
-    //     })
-    //     .catch(error => {
-    //       setLoader(false)
-    //       // const errorCode = error.code;
-    //       const errorMessage = error.message
-    //       setErrorMessage({
-    //         success: true,
-    //         msg:
-    //           errorMessage === 'Firebase: Error (auth/email-already-in-use).'
-    //             ? 'User already exist'
-    //             : '',
-    //       })
-    //       // ..
-    //     })
-    // } else {
-    //   //Sign In Logic
-    //   signInWithEmailAndPassword(
-    //     auth,
-    //     email.current.value,
-    //     password.current.value,
-    //   )
-    //     .then(userCredential => {
-    //       setLoader(false)
-    //       const user = userCredential.user
-    //       console.log(user)
-    //     })
-    //     .catch(error => {
-    //       setLoader(false)
-    //       const errorMessage = error.message
-    //       setErrorMessage({
-    //         success: true,
-    //         msg:
-    //           errorMessage === 'Firebase: Error (auth/invalid-credential).'
-    //             ? "User Doesn't Exist"
-    //             : '',
-    //       })
-    //       console.log(errorMessage)
-    //     })
-    // }
     try {
-      const userCredential = isSignInForm
-        ? await signInWithEmailAndPassword(
-            auth,
-            email.current.value,
-            password.current.value,
-          )
-        : await createUserWithEmailAndPassword(
-            auth,
-            email.current.value,
-            password.current.value,
-          )
-      console.log('User Signed In', userCredential.user)
+      if (isSignInForm) {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email.current.value,
+          password.current.value,
+        )
+        const user = userCredential.user
+        navigate('/browse')
+        console.log('user:', user)
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email.current.value,
+          password.current.value,
+        )
+        const user = userCredential.user
+        updateProfile(user, {
+          displayName: name.current.value,
+          photoURL: PROFILE_PHOTO,
+        })
+          .then(() => {
+            const { uid, email, displayName, photoURL } = auth.currentUser
+            dispatch(
+              addUser({
+                uid: uid,
+                email: email,
+                displayName: displayName,
+                photoURL: photoURL,
+              }),
+            )
+            navigate('/browse')
+          })
+          .catch(err => {
+            console.log(err.message)
+            // navigate('/error')
+          })
+        console.log('user:', user)
+      }
       setLoader(false)
     } catch (err) {
       const errorMessage = err.message
@@ -169,6 +141,7 @@ const Login = () => {
           <input
             type='text'
             placeholder='Full Name'
+            ref={name}
             className='p-4 my-4 bg-[#333] rounded-md w-full'
           />
         )}
@@ -230,21 +203,21 @@ const Login = () => {
           {loader ? (
             <>
               <svg
-                class='animate-spin -ml-1 mr-3 h-5 w-5 text-white'
+                className='animate-spin -ml-1 mr-3 h-5 w-5 text-white'
                 xmlns='http://www.w3.org/2000/svg'
                 fill='none'
                 viewBox='0 0 24 24'
               >
                 <circle
-                  class='opacity-25'
+                  className='opacity-25'
                   cx='12'
                   cy='12'
                   r='10'
                   stroke='currentColor'
-                  stroke-width='4'
+                  strokeWidth='4'
                 ></circle>
                 <path
-                  class='opacity-75'
+                  className='opacity-75'
                   fill='currentColor'
                   d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
                 ></path>

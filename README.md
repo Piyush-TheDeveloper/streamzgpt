@@ -26,3 +26,7 @@ Streaming Application with Integration of powerful ChatGPT API
 - Firebase Setup
 - Deploying our project to Firebase.
 - Implemented SignUp/SignIn user Logic
+- Created Redux store with userSilce
+- Implemented Signout feature
+- Update Profile API call
+- Implemented Redirect of pages using useNavigate hook
