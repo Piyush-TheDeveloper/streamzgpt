@@ -18,3 +18,6 @@ export const API_OPTIONS = {
       'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MGU1M2EyZTgwM2NlZDNmYzdmNThiZjkyMTkxNDAyOCIsIm5iZiI6MTcyNTMwODQzMi45MTA5OTYsInN1YiI6IjY2ZDYxN2NlYTY5NjUwNzVkMGNiODA4ZSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.OaTR9wsBAkU2H-eUbG4w0wGzHkasDvJuEm1cA5RVbn4',
   },
 }
+
+export const TMDB_API_URL =
+  'https://api.themoviedb.org/3/movie/now_playing?page=1'
