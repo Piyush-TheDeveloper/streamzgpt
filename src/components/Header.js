@@ -1,24 +1,47 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import LOGO from '../assets/streamzgpt.png'
-import { RED_USER_ICON } from '../utils/constants'
-import { signOut } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../utils/firebase'
 import { useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { addUser, removeUser } from '../store/userSlice'
 
 const Header = () => {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const user = useSelector(store => store.user)
 
   const handleSignOut = () => {
     signOut(auth)
-      .then(() => {
-        navigate('/')
-      })
+      .then(() => {})
       .catch(err => {
         navigate('/error')
       })
   }
+
+  useEffect(() => {
+    //onAuthStateChanged = firebaseAPI to handle signin and signout from single place.
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      if (user) {
+        const { uid, email, displayName, photoURL } = user
+        dispatch(
+          addUser({
+            uid: uid,
+            email: email,
+            displayName: displayName,
+            photoURL: photoURL,
+          }),
+        )
+        navigate('/browse')
+      } else {
+        dispatch(removeUser())
+        navigate('/')
+      }
+    })
+
+    //Unsubscribe when component unmounts.
+    return () => unsubscribe()
+  }, [])
 
   return (
     <div className='absolute w-screen px-4 py-8 z-10 bg-gradient-to-b from-black flex justify-between'>

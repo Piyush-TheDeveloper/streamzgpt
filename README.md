@@ -30,3 +30,9 @@ Streaming Application with Integration of powerful ChatGPT API
 - Implemented Signout feature
 - Update Profile API call
 - Implemented Redirect of pages using useNavigate hook
+- Bug Fixes:
+  i. Sign Up user displayName and photoURL update 
+  ii. Restricted user to not redirect to browse when not logged in and vice versa.
+- Unsubscribe to onAuthStateChanged callback
+- Registered TMDB API & got API Key and access token
+- Create Movies Slice and store the API Data in our Redux Store

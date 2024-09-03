@@ -9,3 +9,12 @@ export const RED_USER_ICON =
 
 export const PROFILE_PHOTO =
   'https://lh3.googleusercontent.com/a/ACg8ocKv2nEMjz5FXPTPVMwLWMV3Vv6z8KIG78WDh8ikl51ULtJz0zSxJA=s576-c-no'
+
+export const API_OPTIONS = {
+  method: 'GET',
+  headers: {
+    accept: 'application/json',
+    Authorization:
+      'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MGU1M2EyZTgwM2NlZDNmYzdmNThiZjkyMTkxNDAyOCIsIm5iZiI6MTcyNTMwODQzMi45MTA5OTYsInN1YiI6IjY2ZDYxN2NlYTY5NjUwNzVkMGNiODA4ZSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.OaTR9wsBAkU2H-eUbG4w0wGzHkasDvJuEm1cA5RVbn4',
+  },
+}

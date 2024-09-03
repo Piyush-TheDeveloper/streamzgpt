@@ -8,12 +8,10 @@ import {
 import Header from './Header'
 import { auth } from '../utils/firebase'
 import { LOGIN_PAGE_BACKGROUND, PROFILE_PHOTO } from '../utils/constants'
-import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { addUser } from '../store/userSlice'
 
 const Login = () => {
-  const navigate = useNavigate()
   const dispatch = useDispatch()
   const [isSignInForm, setIsSignInForm] = useState(true)
   const [errorMessage, setErrorMessage] = useState(false)
@@ -71,7 +69,6 @@ const Login = () => {
           password.current.value,
         )
         const user = userCredential.user
-        navigate('/browse')
         console.log('user:', user)
       } else {
         const userCredential = await createUserWithEmailAndPassword(
@@ -94,11 +91,9 @@ const Login = () => {
                 photoURL: photoURL,
               }),
             )
-            navigate('/browse')
           })
           .catch(err => {
             console.log(err.message)
-            // navigate('/error')
           })
         console.log('user:', user)
       }
@@ -197,7 +192,7 @@ const Login = () => {
         )}
 
         <button
-          className='p-4 my-6 bg-red-700 rounded-md w-full'
+          className='p-4 my-6 bg-red-700 rounded-md w-full flex justify-center items-center'
           onClick={handleButtonClick}
         >
           {loader ? (
