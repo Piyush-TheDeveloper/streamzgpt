@@ -36,3 +36,4 @@ Streaming Application with Integration of powerful ChatGPT API
 - Unsubscribe to onAuthStateChanged callback
 - Registered TMDB API & got API Key and access token
 - Create Movies Slice and store the API Data in our Redux Store
+- Created custom hook 'useNowPlayingMovies'

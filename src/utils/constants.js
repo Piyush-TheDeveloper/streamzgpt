@@ -19,5 +19,8 @@ export const API_OPTIONS = {
   },
 }
 
-export const TMDB_API_URL =
+export const TMDB_NOW_PLAYING_URL =
   'https://api.themoviedb.org/3/movie/now_playing?page=1'
+
+export const TMDB_MOVIE_VIDEO_URL = movieId =>
+  `https://api.themoviedb.org/3/movie/${movieId}/videos`

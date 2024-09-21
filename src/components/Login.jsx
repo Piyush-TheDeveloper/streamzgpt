@@ -95,7 +95,6 @@ const Login = () => {
           .catch(err => {
             console.log(err.message)
           })
-        console.log('user:', user)
       }
       setLoader(false)
     } catch (err) {
