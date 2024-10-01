@@ -44,10 +44,10 @@ const Header = () => {
   }, [])
 
   return (
-    <div className='absolute w-screen px-4 py-8 z-10 bg-gradient-to-b from-black flex justify-between'>
+    <div className='absolute w-full px-4 py-8 z-10 bg-gradient-to-b from-black flex justify-between text-white'>
       <img className='w-52' src={LOGO} alt='logo' />
       {user && (
-        <div className='flex'>
+        <div className='flex gap-3'>
           <img
             src={user?.photoURL}
             alt='user-icon'
