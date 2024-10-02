@@ -24,3 +24,6 @@ export const TMDB_NOW_PLAYING_URL =
 
 export const TMDB_MOVIE_VIDEO_URL = movieId =>
   `https://api.themoviedb.org/3/movie/${movieId}/videos`
+
+export const IMG_CDN_URL = posterPath =>
+  `https://image.tmdb.org/t/p/w500/${posterPath}`
