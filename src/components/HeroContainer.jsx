@@ -5,8 +5,9 @@ import VideoTrailer from './VideoTrailer'
 
 const HeroContainer = () => {
   const movies = useSelector(store => store.movies?.nowPlayingMovies)
+
   if (movies === null) return
-  const heroMovie = movies[0]
+  const heroMovie = movies[2]
   const { original_title, overview, id } = heroMovie
 
   return (

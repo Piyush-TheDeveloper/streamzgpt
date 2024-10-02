@@ -7,19 +7,29 @@ const MoivesCollectionContainer = () => {
 
   return (
     movies.nowPlayingMovies && (
-      <div className='bg-black'>
+      <div className='bg-black w-screen aspect-auto'>
         <div className='-mt-44 pl-12 relative z-20'>
-          <MovieLists title={'Now Playing'} movies={movies.nowPlayingMovies} />
-          <MovieLists title={'Trending'} movies={movies.nowPlayingMovies} />
-          <MovieLists title={'Popular'} movies={movies.nowPlayingMovies} />
-          <MovieLists
-            title={'Upcoming movies'}
-            movies={movies.nowPlayingMovies}
-          />
-          <MovieLists
-            title={'Horror movies'}
-            movies={movies.nowPlayingMovies}
-          />
+          {movies.nowPlayingMovies && (
+            <MovieLists
+              title={'Now Playing'}
+              movies={movies.nowPlayingMovies}
+            />
+          )}
+          {movies.topRatedMovies && (
+            <MovieLists title={'Trending'} movies={movies.topRatedMovies} />
+          )}
+          {movies.popularMovies && (
+            <MovieLists title={'Popular'} movies={movies.popularMovies} />
+          )}
+          {movies.upcomingMovies && (
+            <MovieLists
+              title={'Upcoming Movies'}
+              movies={movies.upcomingMovies}
+            />
+          )}
+          {/* {movies.horrorMovies && (
+            <MovieLists title={'Horror Movies'} movies={movies.horrorMovies} />
+          )} */}
         </div>
       </div>
     )
