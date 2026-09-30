@@ -73,5 +73,8 @@ Picks → Settings → Variables), then redeploy:
 | `TMDB_TOKEN`   | TMDB "API Read Access Token"                    |
 | `GROQ_MODEL`   | optional, defaults to `llama-3.3-70b-versatile` |
 
-Execute permission is limited to signed-in users. Kids profiles only receive
-titles whose US certification is G/PG (checked server-side per title).
+Execute permission is limited to signed-in users, and the function has the
+`rows.read` scope so it can read the caller's own profile row: the kids
+restriction (only titles whose US certification is G/PG, checked per title) is
+decided **server-side from that profile**, not from anything the browser sends.
+The function timeout is set to 30 s (Groq 15 s + TMDB lookups).

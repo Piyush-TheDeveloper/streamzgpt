@@ -9,10 +9,11 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 /**
- * POST { prompt?, mood?, genres?, saved?, kids? }
+ * POST { profileId, prompt?, mood?, genres?, saved? }
  *  -> 200 { picks: [{ movie, reason }] }
  * Keys (GROQ_API_KEY, TMDB_TOKEN) come from function variables and never reach
- * the browser. Execute permission is limited to signed-in users.
+ * the browser. Execute permission is limited to signed-in users, and the kids
+ * restriction comes from the caller's own profile row, not from the request.
  */
 export default async ({ req, res, log, error }) => {
   if (req.method !== 'POST')
@@ -31,6 +32,23 @@ export default async ({ req, res, log, error }) => {
     return res.json({ error: 'bad_request', message: e.message }, 400)
   }
 
+  let kids
+  try {
+    const profile = await fetchProfileKids({
+      endpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT,
+      project: process.env.APPWRITE_FUNCTION_PROJECT_ID,
+      key: req.headers['x-appwrite-key'],
+      profileId: input.profileId,
+      userId: req.headers['x-appwrite-user-id'],
+    })
+    if (!profile) return res.json({ error: 'forbidden' }, 403)
+    kids = profile.kids
+  } catch (e) {
+    error(`Profile lookup failed: ${e.message}`)
+    return res.json({ error: 'upstream_error' }, 502)
+  }
+  input.kids = kids
+
   let content
   try {
     const groq = await fetch(GROQ_URL, {
@@ -46,7 +64,7 @@ export default async ({ req, res, log, error }) => {
         max_tokens: 900,
         response_format: { type: 'json_object' },
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(15000),
     })
     if (groq.status === 429) return res.json({ error: 'rate_limited' }, 429)
     if (!groq.ok) {

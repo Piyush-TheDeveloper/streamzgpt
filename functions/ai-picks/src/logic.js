@@ -17,12 +17,14 @@ const list = (v, maxItems, maxLen) =>
 export function validateInput(raw) {
   if (!raw || typeof raw !== 'object')
     throw new Error('Expected a JSON object.')
+  const profileId = str(raw.profileId, 36)
+  if (!profileId) throw new Error('profileId is required.')
   const input = {
+    profileId,
     prompt: str(raw.prompt, 300),
     mood: str(raw.mood, 60),
     genres: list(raw.genres, 8, 30),
     saved: list(raw.saved, 10, 100),
-    kids: raw.kids === true,
   }
   return input
 }
@@ -97,29 +99,56 @@ const pickFields = m => ({
 async function tmdb(path, token, fetchImpl) {
   const res = await fetchImpl(`${TMDB}${path}`, {
     headers: { accept: 'application/json', Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`TMDB ${res.status}`)
   return res.json()
 }
 
-/** Finds the film a pick refers to, preferring an exact title (+ year) match. */
-export async function resolvePick(pick, token, fetchImpl = fetch) {
-  const params = new URLSearchParams({
-    query: pick.title,
-    include_adult: 'false',
-  })
-  if (pick.year) params.set('primary_release_year', String(pick.year))
+const normalize = t =>
+  (t ?? '')
+    .toLowerCase()
+    .replace(/\(\d{4}\)\s*$/, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+
+const yearOf = date => Number.parseInt((date ?? '').slice(0, 4), 10) || null
+
+async function searchFilms(title, year, token, fetchImpl) {
+  const params = new URLSearchParams({ query: title, include_adult: 'false' })
+  if (year) params.set('primary_release_year', String(year))
   const { results = [] } = await tmdb(
     `/search/movie?${params}`,
     token,
     fetchImpl,
   )
-  const exact = results.find(
-    r => r.title?.toLowerCase() === pick.title.toLowerCase() && r.poster_path,
-  )
-  const best = exact ?? results.find(r => r.poster_path)
-  return best ? pickFields(best) : null
+  return results.filter(r => r.poster_path)
+}
+
+/**
+ * Finds the film a pick refers to. The model's year is only a hint (models are
+ * often off by one), so we retry without it, but a result must still match the
+ * title: a hallucinated title must not resolve to an unrelated film.
+ */
+export async function resolvePick(pick, token, fetchImpl = fetch) {
+  const want = normalize(pick.title)
+  const matches = (r, allowLoose) => {
+    const got = normalize(r.title)
+    if (got === want) return true
+    if (!allowLoose) return false
+    const related = got.includes(want) || want.includes(got)
+    const y = yearOf(r.release_date)
+    return related && (!pick.year || !y || Math.abs(y - pick.year) <= 1)
+  }
+  const attempts = pick.year ? [pick.year, null] : [null]
+  for (const year of attempts) {
+    const results = await searchFilms(pick.title, year, token, fetchImpl)
+    const hit =
+      results.find(r => matches(r, false)) ??
+      results.find(r => matches(r, true))
+    if (hit) return pickFields(hit)
+  }
+  return null
 }
 
 async function isKidSafe(movieId, token, fetchImpl) {
@@ -129,12 +158,20 @@ async function isKidSafe(movieId, token, fetchImpl) {
     fetchImpl,
   )
   const us = results.find(r => r.iso_3166_1 === 'US')
+  const dates = us?.release_dates ?? []
+  // Type 3 = theatrical; prefer it so a premiere/digital entry can't mask the rating.
   const cert =
-    us?.release_dates?.find(d => d.certification)?.certification ?? ''
+    dates.find(d => d.type === 3 && d.certification)?.certification ??
+    dates.find(d => d.certification)?.certification ??
+    ''
   return KID_SAFE.has(cert)
 }
 
-/** Resolves picks against TMDB, dropping unknown, saved and (for kids) unsafe titles. */
+/**
+ * Resolves picks against TMDB, dropping unknown, saved and (for kids) unsafe
+ * titles. Also reports how many lookups *errored* (vs. simply not matching) so
+ * an outage isn't mistaken for "no results".
+ */
 export async function enrichPicks({
   picks,
   token,
@@ -143,6 +180,8 @@ export async function enrichPicks({
   fetchImpl = fetch,
 }) {
   const saved = new Set(savedTitles.map(t => t.toLowerCase()))
+  let errors = 0
+  let lastError = null
   const resolved = await Promise.all(
     picks.map(async pick => {
       try {
@@ -150,13 +189,41 @@ export async function enrichPicks({
         if (!movie || saved.has(movie.title.toLowerCase())) return null
         if (kids && !(await isKidSafe(movie.id, token, fetchImpl))) return null
         return { movie, reason: pick.reason }
-      } catch {
+      } catch (e) {
+        errors += 1
+        lastError = e
         return null
       }
     }),
   )
   const seen = new Set()
-  return resolved.filter(
+  const items = resolved.filter(
     r => r && !seen.has(r.movie.id) && seen.add(r.movie.id),
   )
+  return { items, errors, lastError }
+}
+
+/**
+ * Reads the caller's profile with the function's scoped API key and returns
+ * whether it is a kids profile. Returns null if it doesn't exist or isn't theirs.
+ */
+export async function fetchProfileKids({
+  endpoint,
+  project,
+  key,
+  profileId,
+  userId,
+  fetchImpl = fetch,
+}) {
+  const res = await fetchImpl(
+    `${endpoint}/tablesdb/streamzgpt/tables/profiles/rows/${encodeURIComponent(profileId)}`,
+    {
+      headers: { 'x-appwrite-project': project, 'x-appwrite-key': key },
+      signal: AbortSignal.timeout(5000),
+    },
+  )
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Appwrite ${res.status}`)
+  const row = await res.json()
+  return row.userId === userId ? { kids: row.kids === true } : null
 }

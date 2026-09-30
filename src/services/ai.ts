@@ -1,13 +1,14 @@
-import { ExecutionMethod } from 'appwrite'
+import { AppwriteException, ExecutionMethod } from 'appwrite'
 import { AI_PICKS_FUNCTION, functions } from '@/lib/appwrite'
 import type { Movie } from '@/types/movie'
 
 export interface AiPicksInput {
+  /** The active profile; the function reads its kids flag server-side. */
+  profileId: string
   prompt?: string
   mood?: string
   genres?: string[]
   saved?: string[]
-  kids?: boolean
 }
 
 export interface AiPick {
@@ -20,6 +21,7 @@ export type AiErrorCode =
   | 'rate_limited'
   | 'upstream_error'
   | 'unauthorized'
+  | 'forbidden'
   | 'unknown'
 
 export class AiError extends Error {
@@ -36,6 +38,8 @@ export const aiErrorMessage = (e: unknown) => {
       return 'The AI is busy right now. Give it a minute and try again.'
     case 'upstream_error':
       return 'The AI service had a hiccup. Please try again.'
+    case 'forbidden':
+      return 'This profile can’t use AI picks. Try switching profiles.'
     case 'unauthorized':
       return 'Please sign in again to use AI picks.'
     default:
@@ -55,7 +59,12 @@ export async function getAiPicks(input: AiPicksInput): Promise<AiPick[]> {
       method: ExecutionMethod.POST,
       headers: { 'content-type': 'application/json' },
     })
-  } catch {
+  } catch (e) {
+    // Appwrite rejects before the function runs for expired sessions / throttling.
+    if (e instanceof AppwriteException) {
+      if (e.code === 401) throw new AiError('unauthorized')
+      if (e.code === 429) throw new AiError('rate_limited')
+    }
     throw new AiError('unknown')
   }
 

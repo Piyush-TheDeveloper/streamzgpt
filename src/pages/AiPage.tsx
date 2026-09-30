@@ -27,7 +27,7 @@ export function AiPage() {
     mutationFn: (input: { prompt: string; mood?: string }) =>
       getAiPicks({
         ...input,
-        kids,
+        profileId: active!.id,
         genres: GENRES.filter(g => active?.genres.includes(g.id)).map(
           g => g.name,
         ),
@@ -35,7 +35,9 @@ export function AiPage() {
       }),
   })
 
-  const ask = (text = prompt, mood = moodId) => {
+  // A mood hidden by switching to a kids profile must not be sent silently.
+  const activeMoodId = moods.some(m => m.id === moodId) ? moodId : null
+  const ask = (text = prompt, mood: string | null = activeMoodId) => {
     const moodLabel = moods.find(m => m.id === mood)?.label
     picks.mutate({ prompt: text.trim(), mood: moodLabel })
   }
@@ -72,7 +74,11 @@ export function AiPage() {
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (
+                e.key === 'Enter' &&
+                !e.shiftKey &&
+                !e.nativeEvent.isComposing
+              ) {
                 e.preventDefault()
                 if (!picks.isPending) ask()
               }
@@ -104,11 +110,15 @@ export function AiPage() {
           <button
             key={m.id}
             type='button'
-            aria-pressed={moodId === m.id}
-            onClick={() => setMoodId(moodId === m.id ? null : m.id)}
+            aria-pressed={activeMoodId === m.id}
+            onClick={() => {
+              if (activeMoodId === m.id) return setMoodId(null)
+              setMoodId(m.id)
+              if (!picks.isPending) ask(prompt, m.id)
+            }}
             className={
               'rounded-full border px-4 py-2.5 text-sm font-medium transition-colors ' +
-              (moodId === m.id
+              (activeMoodId === m.id
                 ? 'border-brand bg-brand text-on-brand'
                 : 'border-border bg-surface/60 hover:border-muted')
             }
@@ -123,7 +133,8 @@ export function AiPage() {
             disabled={picks.isPending}
             onClick={() => {
               setPrompt(ex)
-              ask(ex)
+              setMoodId(null)
+              ask(ex, null)
             }}
             className='rounded-full border border-dashed border-border px-4 py-2.5 text-sm text-muted transition-colors hover:border-muted hover:text-fg'
           >

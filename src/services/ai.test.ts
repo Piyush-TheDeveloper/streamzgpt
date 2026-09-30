@@ -6,6 +6,7 @@ vi.mock('@/lib/appwrite', () => ({
   AI_PICKS_FUNCTION: 'ai-picks',
 }))
 
+import { AppwriteException } from 'appwrite'
 const { AiError, aiErrorMessage, getAiPicks } = await import('./ai')
 
 const exec = (status: number, body: unknown, extra = {}) => ({
@@ -21,30 +22,46 @@ describe('getAiPicks', () => {
   it('returns picks and posts the input as JSON', async () => {
     const picks = [{ movie: { id: 1, title: 'Heat' }, reason: 'r' }]
     createExecution.mockResolvedValue(exec(200, { picks }))
-    await expect(getAiPicks({ prompt: 'heist', kids: false })).resolves.toEqual(
-      picks,
-    )
+    await expect(
+      getAiPicks({ profileId: 'p1', prompt: 'heist' }),
+    ).resolves.toEqual(picks)
     const arg = createExecution.mock.calls[0][0]
     expect(arg.functionId).toBe('ai-picks')
-    expect(JSON.parse(arg.body)).toEqual({ prompt: 'heist', kids: false })
+    expect(JSON.parse(arg.body)).toEqual({ profileId: 'p1', prompt: 'heist' })
   })
   it('maps known function errors', async () => {
     createExecution.mockResolvedValue(exec(503, { error: 'not_configured' }))
-    await expect(getAiPicks({})).rejects.toMatchObject({
+    await expect(getAiPicks({ profileId: 'p1' })).rejects.toMatchObject({
       code: 'not_configured',
     })
     createExecution.mockResolvedValue(exec(429, { error: 'rate_limited' }))
-    await expect(getAiPicks({})).rejects.toMatchObject({ code: 'rate_limited' })
+    await expect(getAiPicks({ profileId: 'p1' })).rejects.toMatchObject({
+      code: 'rate_limited',
+    })
   })
   it('treats failed executions and network errors as unknown', async () => {
     createExecution.mockResolvedValue(exec(500, 'oops', { status: 'failed' }))
-    await expect(getAiPicks({})).rejects.toMatchObject({ code: 'unknown' })
+    await expect(getAiPicks({ profileId: 'p1' })).rejects.toMatchObject({
+      code: 'unknown',
+    })
     createExecution.mockRejectedValue(new Error('offline'))
-    await expect(getAiPicks({})).rejects.toBeInstanceOf(AiError)
+    await expect(getAiPicks({ profileId: 'p1' })).rejects.toBeInstanceOf(
+      AiError,
+    )
+  })
+  it('maps Appwrite rejections (expired session, throttling)', async () => {
+    createExecution.mockRejectedValue(new AppwriteException('x', 401))
+    await expect(getAiPicks({ profileId: 'p1' })).rejects.toMatchObject({
+      code: 'unauthorized',
+    })
+    createExecution.mockRejectedValue(new AppwriteException('x', 429))
+    await expect(getAiPicks({ profileId: 'p1' })).rejects.toMatchObject({
+      code: 'rate_limited',
+    })
   })
   it('returns [] when the body has no picks', async () => {
     createExecution.mockResolvedValue(exec(200, {}))
-    await expect(getAiPicks({})).resolves.toEqual([])
+    await expect(getAiPicks({ profileId: 'p1' })).resolves.toEqual([])
   })
 })
 
