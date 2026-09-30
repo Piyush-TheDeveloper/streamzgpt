@@ -28,10 +28,18 @@ src/
 
 ## Roadmap
 
-1. Foundation (this PR)
-2. Appwrite auth
+1. Foundation ✅
+2. Appwrite auth (email, Google, Apple)
 3. Browse redesign: hero, detail pages, trailers
 4. Search and discovery
 5. Watchlist / favourites
 6. AI suggestions (Groq via Appwrite Function)
 7. Tests, a11y, CI/deploy
+
+## Auth setup (Appwrite)
+
+Set `VITE_APPWRITE_ENDPOINT` and `VITE_APPWRITE_PROJECT_ID` (see
+`.env.example`), add your dev/prod hostnames under **Overview → Platforms**, and
+enable Email/Password under **Auth → Settings**. Google and Apple are enabled
+under **Auth → Settings → OAuth2 providers** with your own client credentials;
+use the redirect URI Appwrite shows for each provider.
