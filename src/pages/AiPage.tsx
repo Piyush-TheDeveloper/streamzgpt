@@ -7,6 +7,7 @@ import { useWatchlist } from '@/features/watchlist/useWatchlist'
 import { GENRES } from '@/lib/genres'
 import { MOODS } from '@/lib/moods'
 import { aiErrorMessage, getAiPicks } from '@/services/ai'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 const KIDS_MOODS = new Set(['cozy', 'epic'])
 const EXAMPLES = [
@@ -16,6 +17,7 @@ const EXAMPLES = [
 ]
 
 export function AiPage() {
+  useDocumentTitle('AI Picks')
   const { active } = useProfile()
   const { movies: saved } = useWatchlist()
   const [prompt, setPrompt] = useState('')

@@ -4,12 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0b10" />
-    <meta name="description" content="StreamzGPT — discover movies with AI." />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="StreamzGPT: discover movies by mood, language and country, with AI-powered suggestions and a personal list for every profile."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="StreamzGPT" />
+    <meta property="og:title" content="StreamzGPT — discover movies with AI" />
+    <meta
+      property="og:description"
+      content="Trending in your country, by language and by mood, with AI suggestions and a list for every profile."
+    />
+    <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Warm the connections the first screen needs (auth/API and posters). -->
+    <link rel="preconnect" href="https://fra.cloud.appwrite.io" crossorigin />
+    <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
     <title>StreamzGPT</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>StreamzGPT needs JavaScript to run.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

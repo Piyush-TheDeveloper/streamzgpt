@@ -14,6 +14,7 @@ import { detectRegion, REGIONS, WORLDWIDE } from '@/lib/regions'
 import { cn } from '@/lib/utils'
 import { validateProfileName } from '@/lib/validation'
 import { MAX_PROFILES, type Profile } from '@/types/profile'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function ProfileFormPage() {
   const { id } = useParams()
@@ -29,6 +30,7 @@ export function ProfileFormPage() {
 }
 
 function ProfileForm({ existing }: { existing?: Profile }) {
+  useDocumentTitle(existing ? 'Edit profile' : 'New profile')
   const navigate = useNavigate()
   const location = useLocation()
   const { profiles, active, setActive } = useProfile()

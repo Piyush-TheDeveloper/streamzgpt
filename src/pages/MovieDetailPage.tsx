@@ -14,6 +14,7 @@ import {
   isKidSafeMovie,
   TmdbError,
 } from '@/services/tmdb'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function MovieDetailPage() {
   const { active } = useProfile()
@@ -30,6 +31,8 @@ export function MovieDetailPage() {
     queryFn: ({ signal }) => getRecommendedMovies(id, signal),
     enabled: valid,
   })
+
+  useDocumentTitle(details.data?.title)
 
   if (!valid || details.isError) {
     const notFound =

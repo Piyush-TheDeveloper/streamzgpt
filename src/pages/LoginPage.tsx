@@ -6,8 +6,10 @@ import { OAuthButtons } from '@/components/auth/OAuthButtons'
 import { useAuth } from '@/features/auth/AuthContext'
 import { authErrorMessage, signIn } from '@/services/auth'
 import { validateEmail, validatePassword } from '@/lib/validation'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function LoginPage() {
+  useDocumentTitle('Sign in')
   const { setUser } = useAuth()
   const [params] = useSearchParams()
   const [errors, setErrors] = useState<{

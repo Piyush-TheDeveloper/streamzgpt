@@ -2,8 +2,10 @@ import { Link } from 'react-router'
 import { MovieGrid } from '@/components/movie/MovieGrid'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { useWatchlist } from '@/features/watchlist/useWatchlist'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function MyListPage() {
+  useDocumentTitle('My List')
   const { active } = useProfile()
   const { movies, status, refetch } = useWatchlist()
 

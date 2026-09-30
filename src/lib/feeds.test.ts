@@ -80,7 +80,9 @@ describe('sortOptions', () => {
     expect(o.releasedBefore).toBe('2026-09-30')
     expect(o.releasedAfter).toBe('2025-03-29')
   })
-  it('never lists unreleased films as newest', () => {
-    expect(sortOptions('newest', NOW).releasedBefore).toBe('2026-09-30')
+  it('never lists unreleased films, whatever the sort', () => {
+    for (const mode of ['trending', 'popular', 'top', 'newest'] as const) {
+      expect(sortOptions(mode, NOW).releasedBefore, mode).toBe('2026-09-30')
+    }
   })
 })
