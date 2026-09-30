@@ -75,7 +75,7 @@ Picks → Settings → Variables), then redeploy:
 
 Execute permission is limited to signed-in users, and the function has the
 `rows.read` scope so it can read the caller's own profile row: the kids
-restriction (only titles whose US certification is G/PG, checked per title) is
+restriction (only titles rated G/PG in the US or "U" in India, checked per title) is
 decided **server-side from that profile**, not from anything the browser sends.
 The function timeout is set to 30 s (Groq 15 s + TMDB lookups).
 
