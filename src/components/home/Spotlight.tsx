@@ -17,6 +17,7 @@ import { useAmbientFromImage } from '@/hooks/useAmbientFromImage'
 import { prefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { releaseYear } from '@/lib/format'
 import { homeIndex, middleCopy, reelCopies, wrap } from '@/lib/loop'
+import { uniqueById } from '@/lib/search'
 import type { Feed } from '@/lib/feeds'
 import { imageUrl } from '@/services/tmdb'
 import { Alert } from '@/components/ui/Alert'
@@ -28,7 +29,8 @@ export function Spotlight({ feed }: { feed: Feed }) {
     queryFn: ({ signal }) => feed.fetch(signal),
   })
   const movies = useMemo(
-    () => data?.results.filter(m => m.poster_path).slice(0, 10) ?? [],
+    () =>
+      uniqueById(data?.results.filter(m => m.poster_path) ?? []).slice(0, 10),
     [data],
   )
   const n = movies.length
@@ -63,6 +65,10 @@ export function Spotlight({ feed }: { feed: Feed }) {
     imageUrl(current?.poster_path ?? null, 'w500')
   // Flinging the reel passes many posters; only fetch art for the one it lands on.
   const backdropSrc = useDebouncedValue(rawBackdrop, 150)
+  const announced = useDebouncedValue(
+    current ? `${current.title}, ${active + 1} of ${n}` : '',
+    400,
+  )
 
   const slide = (f: number) => itemRefs.current[f]?.parentElement ?? null
 
@@ -107,32 +113,58 @@ export function Spotlight({ feed }: { feed: Feed }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [n])
 
-  // When scrolling settles in an outer copy, jump to the identical slide in
-  // the middle copy. Unnoticeable, and it makes the reel endless.
+  /** If the reel is resting in an outer copy, jump to the identical slide in
+   *  the middle copy (unnoticeable) and keep the pending target in step. */
+  const recenter = () => {
+    const f = centeredFlat()
+    if (f === null || Math.floor(f / n) === home) return false
+    const to = homeIndex(f, n, copies)
+    jumpTo(to)
+    targetFlat.current += to - f
+    return true
+  }
+
+  // Makes the reel endless: re-centre once scrolling has fully settled, and
+  // never while a finger or mouse still holds the reel (it would yank the
+  // content out from under the gesture).
   useEffect(() => {
     const root = reelRef.current
     if (!root || copies === 1) return
     let timer: number | undefined
+    let held = 0
     const settle = () => {
-      const f = centeredFlat()
-      if (f !== null && Math.floor(f / n) !== home) {
-        const to = homeIndex(f, n, copies)
-        jumpTo(to)
-        // Keep the pending target in step with the jump, or the next key press
-        // would scroll a whole copy away from where the user now is.
-        targetFlat.current += to - f
-      }
+      if (held === 0) recenter()
     }
-    const onScroll = () => {
+    const schedule = () => {
       window.clearTimeout(timer)
       timer = window.setTimeout(settle, 140)
     }
-    root.addEventListener('scroll', onScroll, { passive: true })
+    const hold = () => void (held += 1)
+    const release = () => {
+      held = Math.max(0, held - 1)
+      schedule()
+    }
+    root.addEventListener('scroll', schedule, { passive: true })
     root.addEventListener('scrollend', settle)
+    root.addEventListener('pointerdown', hold)
+    root.addEventListener('touchstart', hold, { passive: true })
+    for (const t of ['pointerup', 'pointercancel', 'touchend', 'touchcancel']) {
+      root.addEventListener(t, release)
+    }
     return () => {
       window.clearTimeout(timer)
-      root.removeEventListener('scroll', onScroll)
+      root.removeEventListener('scroll', schedule)
       root.removeEventListener('scrollend', settle)
+      root.removeEventListener('pointerdown', hold)
+      root.removeEventListener('touchstart', hold)
+      for (const t of [
+        'pointerup',
+        'pointercancel',
+        'touchend',
+        'touchcancel',
+      ]) {
+        root.removeEventListener(t, release)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strip, copies])
@@ -171,7 +203,20 @@ export function Spotlight({ feed }: { feed: Feed }) {
       behavior: prefersReducedMotion() ? 'auto' : 'smooth',
     })
   }
-  const goToFlat = (f: number) => {
+  const goToFlat = (requested: number) => {
+    let f = requested
+    // Holding a key can run the target off the end of the strip while the
+    // scroll is still catching up. Slide the view and the target by one whole
+    // copy (identical content, so invisible) until the target is in range.
+    for (let guard = 0; guard < 3 && (f < 0 || f >= strip.length); guard++) {
+      const dir = f < 0 ? 1 : -1
+      const at = centeredFlat() ?? home * n
+      const moved = Math.min(strip.length - 1, Math.max(0, at + dir * n))
+      jumpTo(moved)
+      const shift = moved - at
+      targetFlat.current += shift
+      f += shift
+    }
     const next = Math.min(strip.length - 1, Math.max(0, f))
     targetFlat.current = next
     navigating.current = true
@@ -281,8 +326,9 @@ export function Spotlight({ feed }: { feed: Feed }) {
         </div>
       </div>
 
+      {/* Debounced so flinging past several posters announces only where it lands. */}
       <p className='sr-only' aria-live='polite'>
-        {current.title}, {active + 1} of {n}
+        {announced}
       </p>
       <div
         key={current.id}

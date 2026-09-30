@@ -19,6 +19,7 @@ export function FilterDialog({
   initial,
   defaults,
   searching,
+  kids,
   onApply,
   onClose,
 }: {
@@ -27,6 +28,8 @@ export function FilterDialog({
   defaults: FilterValues
   /** A text search is active: only genre can narrow those results. */
   searching: boolean
+  /** Kids search runs inside the kid-safe catalogue, which country can narrow. */
+  kids: boolean
   onApply: (values: FilterValues) => void
   onClose: () => void
 }) {
@@ -34,47 +37,67 @@ export function FilterDialog({
   const [draft, setDraft] = useState(initial)
   const set = <K extends keyof FilterValues>(key: K, value: FilterValues[K]) =>
     setDraft(d => ({ ...d, [key]: value }))
+  // While searching, only genre (and country for kids) can narrow results.
+  const countryLocked = searching && !kids
+  const browseLocked = searching
 
   return (
     <Modal
       title='Filters'
       onClose={onClose}
-      footer={
+      footer={close => (
         <>
           <button
             type='button'
-            onClick={() => setDraft(defaults)}
+            onClick={() =>
+              // Reset only what's editable, so a search can't wipe the browse
+              // filters the user set earlier.
+              setDraft(d =>
+                searching
+                  ? {
+                      ...d,
+                      genre: null,
+                      country: kids ? defaults.country : d.country,
+                    }
+                  : defaults,
+              )
+            }
             className='mr-auto rounded-full px-4 py-2.5 text-sm font-medium text-muted hover:text-fg'
           >
             Reset
           </button>
           <button
             type='button'
-            onClick={onClose}
+            onClick={close}
             className='rounded-full border border-border px-6 py-2.5 text-sm font-medium hover:border-fg'
           >
             Cancel
           </button>
           <button
             type='button'
-            onClick={() => onApply(draft)}
+            onClick={() => {
+              onApply(draft)
+              close()
+            }}
             className='rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-on-brand hover:bg-brand-hover'
           >
             Apply filters
           </button>
         </>
-      }
+      )}
     >
       <div className='space-y-6'>
         {searching && (
           <Alert variant='info' title='You’re searching'>
-            Country, language and sort apply when browsing. Clear the search box
-            to use them. Genre still narrows search results.
+            {kids
+              ? 'Language and sort apply when browsing. Clear the search box to use them.'
+              : 'Country, language and sort apply when browsing. Clear the search box to use them.'}{' '}
+            Genre still narrows search results.
           </Alert>
         )}
 
         <div className='grid gap-4 sm:grid-cols-2'>
-          <Field label='Country' disabled={searching}>
+          <Field label='Country' disabled={countryLocked}>
             {props => (
               <select
                 {...props}
@@ -90,7 +113,7 @@ export function FilterDialog({
               </select>
             )}
           </Field>
-          <Field label='Language' disabled={searching}>
+          <Field label='Language' disabled={browseLocked}>
             {props => (
               <select
                 {...props}
@@ -106,7 +129,11 @@ export function FilterDialog({
               </select>
             )}
           </Field>
-          <Field label='Sort by' disabled={searching} className='sm:col-span-2'>
+          <Field
+            label='Sort by'
+            disabled={browseLocked}
+            className='sm:col-span-2'
+          >
             {props => (
               <select
                 {...props}

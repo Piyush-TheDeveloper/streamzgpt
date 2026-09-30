@@ -16,6 +16,12 @@ export interface AiPick {
   reason: string
 }
 
+export interface AiResult {
+  picks: AiPick[]
+  /** Some suggestions couldn't be looked up; a retry may return more. */
+  partial: boolean
+}
+
 export type AiErrorCode =
   | 'not_configured'
   | 'rate_limited'
@@ -72,7 +78,7 @@ export const aiErrorMessage = (e: unknown) => {
 }
 
 /** Asks the `ai-picks` Appwrite Function (which holds the Groq/TMDB keys). */
-export async function getAiPicks(input: AiPicksInput): Promise<AiPick[]> {
+export async function getAiPicks(input: AiPicksInput): Promise<AiResult> {
   let execution
   try {
     execution = await functions.createExecution({
@@ -92,7 +98,7 @@ export async function getAiPicks(input: AiPicksInput): Promise<AiPick[]> {
     throw new AiError('unknown')
   }
 
-  let body: { picks?: AiPick[]; error?: string } = {}
+  let body: { picks?: AiPick[]; partial?: boolean; error?: string } = {}
   try {
     body = JSON.parse(execution.responseBody || '{}')
   } catch {
@@ -107,5 +113,8 @@ export async function getAiPicks(input: AiPicksInput): Promise<AiPick[]> {
     ]
     throw new AiError(known.find(c => c === body.error) ?? 'unknown')
   }
-  return Array.isArray(body.picks) ? body.picks : []
+  return {
+    picks: Array.isArray(body.picks) ? body.picks : [],
+    partial: body.partial === true,
+  }
 }

@@ -67,10 +67,10 @@ export function Alert({
     >
       <Icon className={cn('mt-0.5 size-5 shrink-0', icon)} aria-hidden />
       <div className='min-w-0 flex-1 space-y-1'>
-        <p className='font-semibold'>
+        <div className='font-semibold'>
           <span className='sr-only'>{label}: </span>
-          {title ?? children}
-        </p>
+          {title || children}
+        </div>
         {title && children && <div className='text-fg/85'>{children}</div>}
         {action && <div className='pt-1'>{action}</div>}
       </div>

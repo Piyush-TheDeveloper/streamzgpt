@@ -210,19 +210,16 @@ export function SearchPage() {
   ])
 
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const filterButtonRef = useRef<HTMLButtonElement>(null)
   const defaultCountry = active?.region ?? WORLDWIDE
+  // Only count filters that are actually narrowing what's on screen.
+  const browsing = mode === 'browse'
   const filterCount =
     (genre !== null ? 1 : 0) +
-    (language ? 1 : 0) +
-    (sort !== 'trending' ? 1 : 0) +
-    (country !== defaultCountry ? 1 : 0)
-  const closeFilters = () => {
-    setFiltersOpen(false)
-    // The dialog is unmounted (not close()d), so the browser won't restore
-    // focus; hand it back to the trigger once the dialog is gone.
-    requestAnimationFrame(() => filterButtonRef.current?.focus())
-  }
+    (browsing && language ? 1 : 0) +
+    (browsing && sort !== 'trending' ? 1 : 0) +
+    ((browsing || kids) && country !== defaultCountry ? 1 : 0)
+  // The dialog restores focus to the trigger itself when it closes.
+  const closeFilters = () => setFiltersOpen(false)
   const applyFilters = (v: FilterValues) => {
     setParams(
       p => {
@@ -237,7 +234,6 @@ export function SearchPage() {
       },
       { replace: true },
     )
-    closeFilters()
   }
 
   const heading =
@@ -283,7 +279,6 @@ export function SearchPage() {
           className='h-14 w-full appearance-none rounded-full [&::-webkit-search-cancel-button]:appearance-none border border-border bg-surface/80 pl-14 pr-28 text-lg outline-none backdrop-blur placeholder:text-muted focus:border-brand'
         />
         <button
-          ref={filterButtonRef}
           type='button'
           aria-label={
             filterCount > 0 ? `Filters, ${filterCount} applied` : 'Filters'
@@ -331,6 +326,7 @@ export function SearchPage() {
             genre: null,
           }}
           searching={mode === 'search'}
+          kids={kids}
           onApply={applyFilters}
           onClose={closeFilters}
         />

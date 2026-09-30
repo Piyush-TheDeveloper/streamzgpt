@@ -25,7 +25,7 @@ describe('getAiPicks', () => {
     createExecution.mockResolvedValue(exec(200, { picks }))
     await expect(
       getAiPicks({ profileId: 'p1', prompt: 'heist' }),
-    ).resolves.toEqual(picks)
+    ).resolves.toEqual({ picks, partial: false })
     const arg = createExecution.mock.calls[0][0]
     expect(arg.functionId).toBe('ai-picks')
     expect(JSON.parse(arg.body)).toEqual({ profileId: 'p1', prompt: 'heist' })
@@ -60,9 +60,18 @@ describe('getAiPicks', () => {
       code: 'rate_limited',
     })
   })
-  it('returns [] when the body has no picks', async () => {
+  it('passes through the partial flag', async () => {
+    createExecution.mockResolvedValue(exec(200, { picks: [], partial: true }))
+    await expect(getAiPicks({ profileId: 'p1' })).resolves.toMatchObject({
+      partial: true,
+    })
+  })
+  it('returns no picks when the body has no picks', async () => {
     createExecution.mockResolvedValue(exec(200, {}))
-    await expect(getAiPicks({ profileId: 'p1' })).resolves.toEqual([])
+    await expect(getAiPicks({ profileId: 'p1' })).resolves.toEqual({
+      picks: [],
+      partial: false,
+    })
   })
 })
 

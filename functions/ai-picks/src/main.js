@@ -11,7 +11,7 @@ const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 /**
  * POST { profileId, prompt?, mood?, genres?, saved? }
- *  -> 200 { picks: [{ movie, reason }] }
+ *  -> 200 { picks: [{ movie, reason }], partial: boolean }
  * Keys (GROQ_API_KEY, TMDB_TOKEN) come from function variables and never reach
  * the browser. Execute permission is limited to signed-in users, and the kids
  * restriction comes from the caller's own profile row, not from the request.
@@ -97,5 +97,7 @@ export default async ({ req, res, log, error }) => {
   log(
     `picks requested=${picks.length} returned=${items.length} kids=${input.kids}`,
   )
-  return res.json({ picks: items })
+  // `partial` lets the UI offer a retry when some lookups failed, instead of
+  // passing off a thin list as the complete answer.
+  return res.json({ picks: items, partial: errors > 0 })
 }

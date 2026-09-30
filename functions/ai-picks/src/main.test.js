@@ -111,6 +111,7 @@ describe('ai-picks handler', () => {
     vi.stubGlobal('fetch', tmdbFor())
     const out = await run()
     expect(out.status).toBe(200)
+    expect(out.body.partial).toBe(false)
     expect(out.body.picks.map(p => p.movie.title)).toEqual(['Heat', 'Up'])
     expect(out.body.picks[0].reason).toContain('funny heist')
   })
@@ -121,6 +122,22 @@ describe('ai-picks handler', () => {
       bodyJson: { profileId: 'kid', prompt: 'x', kids: false /* ignored */ },
     })
     expect(out.body.picks.map(p => p.movie.title)).toEqual(['Up'])
+  })
+
+  it('flags a partial result when some TMDB lookups fail', async () => {
+    const base = tmdbFor()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (u, i) =>
+        String(u).includes('query=Up')
+          ? Promise.reject(new Error('boom'))
+          : base(u, i),
+      ),
+    )
+    const out = await run()
+    expect(out.status).toBe(200)
+    expect(out.body.partial).toBe(true)
+    expect(out.body.picks.map(p => p.movie.title)).toEqual(['Heat'])
   })
 
   it('maps Groq rate limits and failures to friendly codes', async () => {

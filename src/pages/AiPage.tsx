@@ -54,7 +54,18 @@ export function AiPage() {
     if (!picks.isPending) ask()
   }
 
-  const results = picks.data
+  const results = picks.data?.picks
+  const partial = picks.data?.partial ?? false
+  const retryButton = (
+    <button
+      type='button'
+      onClick={() => ask()}
+      disabled={picks.isPending}
+      className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+    >
+      Try again
+    </button>
+  )
 
   return (
     <div className='mx-auto max-w-5xl px-4 pb-16 pt-28 sm:px-6'>
@@ -198,23 +209,43 @@ export function AiPage() {
             {aiErrorMessage(picks.error)}
           </Alert>
         ) : results && results.length === 0 ? (
-          <Alert variant='info' title='No matches this time'>
-            Try rewording it, or tap “Surprise me”.
-          </Alert>
+          partial ? (
+            <Alert
+              variant='warning'
+              title='Suggestions couldn’t be loaded'
+              action={retryButton}
+            >
+              The film database didn’t respond. Try again in a moment.
+            </Alert>
+          ) : (
+            <Alert variant='info' title='No matches this time'>
+              Try rewording it, or tap “Surprise me”.
+            </Alert>
+          )
         ) : results ? (
-          <ul className='grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4'>
-            {results.map(({ movie, reason }) => (
-              <li key={movie.id} className='rise-in'>
-                <MovieCard movie={movie} className='w-full' />
-                {reason && (
-                  <p className='mt-2 text-sm leading-snug text-fg/80'>
-                    <span className='sr-only'>Why: </span>
-                    {reason}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            {partial && (
+              <Alert
+                variant='warning'
+                title='Some suggestions couldn’t be loaded'
+                action={retryButton}
+                className='mb-6'
+              />
+            )}
+            <ul className='grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4'>
+              {results.map(({ movie, reason }) => (
+                <li key={movie.id} className='rise-in'>
+                  <MovieCard movie={movie} className='w-full' />
+                  {reason && (
+                    <p className='mt-2 text-sm leading-snug text-fg/80'>
+                      <span className='sr-only'>Why: </span>
+                      {reason}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
         ) : null}
       </section>
     </div>
