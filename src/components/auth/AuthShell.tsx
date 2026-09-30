@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { isAppwriteConfigured } from '@/lib/appwrite'
+import { Alert } from '@/components/ui/Alert'
 
 export function AuthShell({
   title,
@@ -22,13 +23,10 @@ export function AuthShell({
         </Link>
         <h1 className='text-center text-xl font-semibold'>{title}</h1>
         {!isAppwriteConfigured && (
-          <p
-            role='alert'
-            className='rounded-md bg-surface-2 p-3 text-sm text-muted'
-          >
-            Appwrite isn’t configured. Set VITE_APPWRITE_ENDPOINT and
-            VITE_APPWRITE_PROJECT_ID in .env.local.
-          </p>
+          <Alert variant='warning' title='Appwrite isn’t configured'>
+            Set VITE_APPWRITE_ENDPOINT and VITE_APPWRITE_PROJECT_ID in
+            .env.local.
+          </Alert>
         )}
         {children}
         <p className='text-center text-sm text-muted'>{footer}</p>

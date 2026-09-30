@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { signOut } from '@/services/auth'
 import { cn } from '@/lib/utils'
+import { Alert } from '@/components/ui/Alert'
 
 const item =
   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-surface-2'
@@ -184,9 +185,9 @@ export function ProfileMenu() {
             Sign out
           </button>
           {signOutFailed && (
-            <p role='alert' className='px-3 pb-2 text-xs text-danger'>
-              Couldn’t sign out. Try again.
-            </p>
+            <Alert variant='error' title='Couldn’t sign out' className='m-2'>
+              Try again.
+            </Alert>
           )}
         </div>
       )}

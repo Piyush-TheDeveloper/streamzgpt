@@ -7,7 +7,8 @@ vi.mock('@/lib/appwrite', () => ({
 }))
 
 import { AppwriteException } from 'appwrite'
-const { AiError, aiErrorMessage, getAiPicks } = await import('./ai')
+const { AiError, aiErrorMessage, aiErrorTitle, aiErrorVariant, getAiPicks } =
+  await import('./ai')
 
 const exec = (status: number, body: unknown, extra = {}) => ({
   responseStatusCode: status,
@@ -24,7 +25,7 @@ describe('getAiPicks', () => {
     createExecution.mockResolvedValue(exec(200, { picks }))
     await expect(
       getAiPicks({ profileId: 'p1', prompt: 'heist' }),
-    ).resolves.toEqual(picks)
+    ).resolves.toEqual({ picks, partial: false })
     const arg = createExecution.mock.calls[0][0]
     expect(arg.functionId).toBe('ai-picks')
     expect(JSON.parse(arg.body)).toEqual({ profileId: 'p1', prompt: 'heist' })
@@ -59,15 +60,37 @@ describe('getAiPicks', () => {
       code: 'rate_limited',
     })
   })
-  it('returns [] when the body has no picks', async () => {
+  it('passes through the partial flag', async () => {
+    createExecution.mockResolvedValue(exec(200, { picks: [], partial: true }))
+    await expect(getAiPicks({ profileId: 'p1' })).resolves.toMatchObject({
+      partial: true,
+    })
+  })
+  it('returns no picks when the body has no picks', async () => {
     createExecution.mockResolvedValue(exec(200, {}))
-    await expect(getAiPicks({ profileId: 'p1' })).resolves.toEqual([])
+    await expect(getAiPicks({ profileId: 'p1' })).resolves.toEqual({
+      picks: [],
+      partial: false,
+    })
   })
 })
 
 describe('aiErrorMessage', () => {
   it('has friendly copy per code', () => {
-    expect(aiErrorMessage(new AiError('rate_limited'))).toMatch(/busy/)
+    expect(aiErrorMessage(new AiError('rate_limited'))).toMatch(/minute/)
     expect(aiErrorMessage(new Error('x'))).toMatch(/Couldn’t/)
+  })
+})
+
+describe('aiErrorVariant / aiErrorTitle', () => {
+  it('treats setup and busy states as warnings, failures as errors', () => {
+    expect(aiErrorVariant(new AiError('not_configured'))).toBe('warning')
+    expect(aiErrorVariant(new AiError('rate_limited'))).toBe('warning')
+    expect(aiErrorVariant(new AiError('upstream_error'))).toBe('error')
+    expect(aiErrorVariant(new Error('x'))).toBe('error')
+  })
+  it('has a title for every code', () => {
+    expect(aiErrorTitle(new AiError('rate_limited'))).toBe('The AI is busy')
+    expect(aiErrorTitle(new Error('x'))).toBe('Couldn’t get suggestions')
   })
 })

@@ -19,8 +19,8 @@ const inflight = new Map()
 export default async ({ req, res, error }) => {
   if (req.method !== 'POST')
     return res.json({ error: 'method_not_allowed' }, 405)
-  if (!req.headers['x-appwrite-user-id'])
-    return res.json({ error: 'unauthorized' }, 401)
+  const userId = req.headers['x-appwrite-user-id']
+  if (!userId) return res.json({ error: 'unauthorized' }, 401)
   const token = process.env.TMDB_TOKEN
   if (!token) return res.json({ error: 'not_configured' }, 503)
 
@@ -35,6 +35,10 @@ export default async ({ req, res, error }) => {
 
   const cached = cache.get(path)
   if (cached) return res.json(cached.data, cached.status)
+
+  // Only real upstream calls count: cache hits cost TMDB nothing, so ordinary
+  // browsing never trips the limit, but one account can't drain the quota.
+  if (!allow(userId)) return res.json({ error: 'rate_limited' }, 429)
 
   try {
     let pending = inflight.get(path)

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Info, Star } from 'lucide-react'
@@ -9,8 +16,11 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useAmbientFromImage } from '@/hooks/useAmbientFromImage'
 import { prefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { releaseYear } from '@/lib/format'
+import { homeIndex, middleCopy, reelCopies, wrap } from '@/lib/loop'
+import { uniqueById } from '@/lib/search'
 import type { Feed } from '@/lib/feeds'
 import { imageUrl } from '@/services/tmdb'
+import { Alert } from '@/components/ui/Alert'
 
 export function Spotlight({ feed }: { feed: Feed }) {
   const navigate = useNavigate()
@@ -19,17 +29,33 @@ export function Spotlight({ feed }: { feed: Feed }) {
     queryFn: ({ signal }) => feed.fetch(signal),
   })
   const movies = useMemo(
-    () => data?.results.filter(m => m.poster_path).slice(0, 10) ?? [],
+    () =>
+      uniqueById(data?.results.filter(m => m.poster_path) ?? []).slice(0, 10),
     [data],
   )
+  const n = movies.length
+  const copies = reelCopies(n)
+  const home = middleCopy(copies)
+  // Every movie appears once per copy; `f` is its position in the whole strip.
+  const strip = useMemo(
+    () =>
+      Array.from({ length: copies * n }, (_, f) => ({
+        f,
+        i: f % n,
+        copy: Math.floor(f / n),
+        movie: movies[f % n],
+      })),
+    [movies, copies, n],
+  )
+
   const [active, setActive] = useState(0)
-  // Tracks where we're heading so rapid key presses don't reuse a stale index
-  // while a smooth scroll is still settling (the observer fires for every
-  // poster the scroll passes, so it only wins once scrolling has been idle).
-  const target = useRef(0)
+  // Where we're heading, so rapid key presses don't reuse a stale position
+  // while a smooth scroll is still settling.
+  const targetFlat = useRef(0)
   const navigating = useRef(false)
   const navTimer = useRef<number>(undefined)
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const reelRef = useRef<HTMLUListElement>(null)
   const current = movies[active]
 
   useAmbientFromImage(imageUrl(current?.poster_path ?? null, 'w92'))
@@ -39,45 +65,160 @@ export function Spotlight({ feed }: { feed: Feed }) {
     imageUrl(current?.poster_path ?? null, 'w500')
   // Flinging the reel passes many posters; only fetch art for the one it lands on.
   const backdropSrc = useDebouncedValue(rawBackdrop, 150)
+  const announced = useDebouncedValue(
+    current ? `${current.title}, ${active + 1} of ${n}` : '',
+    400,
+  )
 
-  // Whichever poster crosses the centre line of the reel becomes active.
-  const reelRef = useRef<HTMLUListElement>(null)
+  const slide = (f: number) => itemRefs.current[f]?.parentElement ?? null
+
+  /** Strip position of the slide nearest the reel's centre (layout-based, so
+   *  the coverflow transforms don't affect it). */
+  const centeredFlat = () => {
+    const root = reelRef.current
+    if (!root) return null
+    const mid = root.scrollLeft + root.clientWidth / 2
+    let best: number | null = null
+    let bestDist = Infinity
+    for (let f = 0; f < strip.length; f++) {
+      const el = slide(f)
+      if (!el) continue
+      const dist = Math.abs(
+        el.offsetLeft - root.offsetLeft + el.offsetWidth / 2 - mid,
+      )
+      if (dist < bestDist) {
+        best = f
+        bestDist = dist
+      }
+    }
+    return best
+  }
+
+  const jumpTo = (f: number) => {
+    const root = reelRef.current
+    const el = slide(f)
+    if (!root || !el) return
+    // Snapping is paused so the jump can't be "corrected" halfway.
+    root.style.scrollSnapType = 'none'
+    root.scrollLeft =
+      el.offsetLeft - root.offsetLeft - (root.clientWidth - el.offsetWidth) / 2
+    requestAnimationFrame(() => (root.style.scrollSnapType = ''))
+  }
+
+  // Start on the first film in the *middle* copy: neighbours show on both sides.
+  useLayoutEffect(() => {
+    if (n === 0) return
+    targetFlat.current = home * n
+    jumpTo(home * n)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n])
+
+  /** If the reel is resting in an outer copy, jump to the identical slide in
+   *  the middle copy (unnoticeable) and keep the pending target in step. */
+  const recenter = () => {
+    const f = centeredFlat()
+    if (f === null || Math.floor(f / n) === home) return false
+    const to = homeIndex(f, n, copies)
+    jumpTo(to)
+    targetFlat.current += to - f
+    return true
+  }
+
+  // Makes the reel endless: re-centre once scrolling has fully settled, and
+  // never while a finger or mouse still holds the reel (it would yank the
+  // content out from under the gesture).
   useEffect(() => {
     const root = reelRef.current
-    if (!root || movies.length === 0) return
+    if (!root || copies === 1) return
+    let timer: number | undefined
+    let held = 0
+    const settle = () => {
+      if (held === 0) recenter()
+    }
+    const schedule = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(settle, 140)
+    }
+    const hold = () => void (held += 1)
+    const release = () => {
+      held = Math.max(0, held - 1)
+      schedule()
+    }
+    root.addEventListener('scroll', schedule, { passive: true })
+    root.addEventListener('scrollend', settle)
+    root.addEventListener('pointerdown', hold)
+    root.addEventListener('touchstart', hold, { passive: true })
+    for (const t of ['pointerup', 'pointercancel', 'touchend', 'touchcancel']) {
+      root.addEventListener(t, release)
+    }
+    return () => {
+      window.clearTimeout(timer)
+      root.removeEventListener('scroll', schedule)
+      root.removeEventListener('scrollend', settle)
+      root.removeEventListener('pointerdown', hold)
+      root.removeEventListener('touchstart', hold)
+      for (const t of [
+        'pointerup',
+        'pointercancel',
+        'touchend',
+        'touchcancel',
+      ]) {
+        root.removeEventListener(t, release)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strip, copies])
+
+  // Whichever poster crosses the centre line of the reel becomes active.
+  useEffect(() => {
+    const root = reelRef.current
+    if (!root || n === 0) return
     const io = new IntersectionObserver(
       entries => {
         for (const e of entries) {
           if (e.isIntersecting) {
             const i = Number((e.target as HTMLElement).dataset.index)
-            if (!navigating.current) target.current = i
+            if (!navigating.current) {
+              targetFlat.current = Number(
+                (e.target as HTMLElement).dataset.flat,
+              )
+            }
             setActive(i)
           }
         }
       },
       { root, rootMargin: '0px -49% 0px -49%' },
     )
-    itemRefs.current.forEach(el => el && io.observe(el.parentElement!))
+    strip.forEach(({ f }) => slide(f) && io.observe(slide(f)!))
     return () => io.disconnect()
-  }, [movies])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strip])
 
   useEffect(() => () => window.clearTimeout(navTimer.current), [])
 
-  const center = (i: number) => {
-    const el = itemRefs.current[i]
-    if (!el) return
-    el.parentElement!.scrollIntoView({
+  const center = (f: number) => {
+    slide(f)?.scrollIntoView({
       inline: 'center',
       block: 'nearest',
       behavior: prefersReducedMotion() ? 'auto' : 'smooth',
     })
   }
-  const go = (delta: number) => {
-    const next = Math.min(
-      movies.length - 1,
-      Math.max(0, target.current + delta),
-    )
-    target.current = next
+  const goToFlat = (requested: number) => {
+    let f = requested
+    // Holding a key can run the target off the end of the strip while the
+    // scroll is still catching up. Slide the view and the target by one whole
+    // copy (identical content, so invisible) until the target is in range.
+    for (let guard = 0; guard < 3 && (f < 0 || f >= strip.length); guard++) {
+      const dir = f < 0 ? 1 : -1
+      const at = centeredFlat() ?? home * n
+      const moved = Math.min(strip.length - 1, Math.max(0, at + dir * n))
+      jumpTo(moved)
+      const shift = moved - at
+      targetFlat.current += shift
+      f += shift
+    }
+    const next = Math.min(strip.length - 1, Math.max(0, f))
+    targetFlat.current = next
     navigating.current = true
     window.clearTimeout(navTimer.current)
     navTimer.current = window.setTimeout(
@@ -85,29 +226,35 @@ export function Spotlight({ feed }: { feed: Feed }) {
       900,
     )
     center(next)
-    itemRefs.current[next]?.focus({ preventScroll: true })
+    // Focus lives on the middle copy (the only one assistive tech sees).
+    itemRefs.current[home * n + wrap(next, n)]?.focus({ preventScroll: true })
+  }
+  const go = (delta: number) => {
+    const base = navigating.current
+      ? targetFlat.current
+      : (centeredFlat() ?? home * n)
+    goToFlat(base + delta)
   }
   const onKeyDown = (e: KeyboardEvent) => {
-    const delta =
-      e.key === 'ArrowRight'
-        ? 1
-        : e.key === 'ArrowLeft'
-          ? -1
-          : e.key === 'Home'
-            ? -target.current
-            : e.key === 'End'
-              ? movies.length
-              : 0
-    if (delta === 0) return
+    const base = navigating.current
+      ? targetFlat.current
+      : (centeredFlat() ?? home * n)
+    const copyStart = Math.floor(base / n) * n
+    if (e.key === 'ArrowRight') goToFlat(base + 1)
+    else if (e.key === 'ArrowLeft') goToFlat(base - 1)
+    else if (e.key === 'Home') goToFlat(copyStart)
+    else if (e.key === 'End') goToFlat(copyStart + n - 1)
+    else return
     e.preventDefault()
-    go(delta)
   }
 
   if (error) {
     return (
-      <p role='alert' className='px-4 py-16 text-center text-muted'>
-        {error.message}
-      </p>
+      <div className='mx-auto max-w-xl px-4 py-10'>
+        <Alert variant='error' title='Couldn’t load what’s playing'>
+          {error.message}
+        </Alert>
+      </div>
     )
   }
   if (isPending) {
@@ -130,57 +277,58 @@ export function Spotlight({ feed }: { feed: Feed }) {
           ref={reelRef}
           style={{ perspective: '900px' }}
           onKeyDown={onKeyDown}
-          className='scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto px-[calc(50%-6rem)] py-8 sm:px-[calc(50%-8rem)]'
+          className='scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto py-8'
         >
-          {movies.map((m, i) => (
-            <li
-              key={m.id}
-              data-index={i}
-              className='reel-item w-48 shrink-0 snap-center sm:w-64'
-              aria-roledescription='slide'
-              aria-label={`${i + 1} of ${movies.length}`}
-            >
-              <button
-                ref={el => void (itemRefs.current[i] = el)}
-                type='button'
-                tabIndex={i === active ? 0 : -1}
-                aria-current={i === active}
-                onClick={() =>
-                  i === active ? navigate(`/movie/${m.id}`) : center(i)
-                }
-                className='block aspect-2/3 w-full overflow-hidden rounded-3xl bg-surface-2 shadow-2xl shadow-black/60 ring-1 ring-white/10'
+          {strip.map(({ f, i, copy, movie: m }) => {
+            const isHome = copy === home
+            return (
+              <li
+                key={`${copy}-${m.id}`}
+                data-index={i}
+                data-flat={f}
+                className='reel-item w-48 shrink-0 snap-center sm:w-64'
+                aria-roledescription='slide'
+                aria-label={`${i + 1} of ${n}`}
+                // The extra copies exist only for the endless scroll; screen
+                // readers get one clean list of slides.
+                aria-hidden={isHome ? undefined : true}
               >
-                <img
-                  src={imageUrl(m.poster_path, 'w500') ?? ''}
-                  alt={m.title}
-                  className='size-full object-cover'
-                  draggable={false}
-                  fetchPriority={i < 3 ? 'high' : 'auto'}
-                />
-              </button>
-            </li>
-          ))}
+                <button
+                  ref={el => void (itemRefs.current[f] = el)}
+                  type='button'
+                  tabIndex={isHome && i === active ? 0 : -1}
+                  aria-current={isHome && i === active ? true : undefined}
+                  onClick={() =>
+                    i === active ? navigate(`/movie/${m.id}`) : goToFlat(f)
+                  }
+                  className='block aspect-2/3 w-full overflow-hidden rounded-3xl bg-surface-2 shadow-2xl shadow-black/60 ring-1 ring-white/10'
+                >
+                  <img
+                    src={imageUrl(m.poster_path, 'w500') ?? ''}
+                    alt={isHome ? m.title : ''}
+                    className='size-full object-cover'
+                    draggable={false}
+                    loading={isHome && i < 3 ? 'eager' : 'lazy'}
+                    fetchPriority={isHome && i < 3 ? 'high' : 'auto'}
+                  />
+                </button>
+              </li>
+            )
+          })}
         </ul>
         <div className='pointer-events-none absolute inset-y-0 left-2 right-2 hidden items-center justify-between sm:flex'>
-          <RoundButton
-            label='Previous movie'
-            onClick={() => go(-1)}
-            atEnd={active === 0}
-          >
+          <RoundButton label='Previous movie' onClick={() => go(-1)}>
             <ChevronLeft className='size-6' aria-hidden />
           </RoundButton>
-          <RoundButton
-            label='Next movie'
-            onClick={() => go(1)}
-            atEnd={active === movies.length - 1}
-          >
+          <RoundButton label='Next movie' onClick={() => go(1)}>
             <ChevronRight className='size-6' aria-hidden />
           </RoundButton>
         </div>
       </div>
 
+      {/* Debounced so flinging past several posters announces only where it lands. */}
       <p className='sr-only' aria-live='polite'>
-        {current.title}, {active + 1} of {movies.length}
+        {announced}
       </p>
       <div
         key={current.id}
@@ -194,9 +342,6 @@ export function Spotlight({ feed }: { feed: Feed }) {
             {current.vote_average.toFixed(1)}
           </span>
           {releaseYear(current.release_date)}
-        </p>
-        <p className='mx-auto mt-3 line-clamp-3 max-w-xl text-fg/85'>
-          {current.overview}
         </p>
         <div className='mt-5 flex flex-wrap justify-center gap-3'>
           <TrailerButton
@@ -221,21 +366,17 @@ function RoundButton({
   label,
   children,
   onClick,
-  atEnd,
 }: {
   label: string
   children: React.ReactNode
   onClick: () => void
-  atEnd: boolean
 }) {
-  // aria-disabled (not disabled) so keyboard focus isn't dropped at the ends.
   return (
     <button
       type='button'
       aria-label={label}
-      aria-disabled={atEnd}
-      onClick={() => !atEnd && onClick()}
-      className='pointer-events-auto grid size-12 place-items-center rounded-full border border-border bg-bg/70 backdrop-blur transition hover:bg-surface-2 aria-disabled:opacity-30'
+      onClick={onClick}
+      className='pointer-events-auto grid size-12 place-items-center rounded-full border border-border bg-bg/70 backdrop-blur transition hover:bg-surface-2'
     >
       {children}
     </button>

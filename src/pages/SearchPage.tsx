@@ -1,15 +1,12 @@
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Search, X } from 'lucide-react'
+import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { MovieGrid } from '@/components/movie/MovieGrid'
+import {
+  FilterDialog,
+  type FilterValues,
+} from '@/components/search/FilterDialog'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { GENRES } from '@/lib/genres'
@@ -24,6 +21,7 @@ import {
   searchMovies,
 } from '@/services/tmdb'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 type Mode = 'search' | 'browse'
 
@@ -211,26 +209,41 @@ export function SearchPage() {
     fetchNextPage,
   ])
 
-  const setParam = (key: string, value: string | null) =>
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const defaultCountry = active?.region ?? WORLDWIDE
+  // Only count filters that are actually narrowing what's on screen.
+  const browsing = mode === 'browse'
+  const filterCount =
+    (genre !== null ? 1 : 0) +
+    (browsing && language ? 1 : 0) +
+    (browsing && sort !== 'trending' ? 1 : 0) +
+    ((browsing || kids) && country !== defaultCountry ? 1 : 0)
+  // The dialog restores focus to the trigger itself when it closes.
+  const closeFilters = () => setFiltersOpen(false)
+  const applyFilters = (v: FilterValues) => {
     setParams(
       p => {
-        if (value === null) p.delete(key)
-        else p.set(key, value)
+        // Defaults aren't written, so URLs stay short and follow the profile.
+        const set = (key: string, value: string | null) =>
+          value === null ? p.delete(key) : p.set(key, value)
+        set('country', v.country === defaultCountry ? null : v.country)
+        set('lang', v.language)
+        set('sort', v.sort === 'trending' ? null : v.sort)
+        set('genre', v.genre === null ? null : String(v.genre))
         return p
       },
       { replace: true },
     )
-  const setGenre = (id: number | null) =>
-    setParam('genre', id === null ? null : String(id))
+  }
 
   const heading =
     mode === 'search'
       ? `Results for “${urlQuery}”${kids ? ' in kid-safe titles' : ''}`
       : kids && !language && genre === null
         ? `Family favourites${country === WORLDWIDE ? '' : ` in ${regionName(country)}`}`
-        : `${SORT_LABELS[sort]} · ${
+        : `${SORT_LABELS[sort]} ${language ? `${LANGUAGES[language]} ` : ''}${
             genre === null ? '' : `${GENRES.find(g => g.id === genre)!.name} `
-          }${language ? `${LANGUAGES[language]} ` : ''}movies ${
+          }movies ${
             country === WORLDWIDE ? 'worldwide' : `in ${regionName(country)}`
           }`
 
@@ -263,8 +276,30 @@ export function SearchPage() {
           placeholder='Search movies…'
           autoComplete='off'
           enterKeyHint='search'
-          className='h-14 w-full appearance-none rounded-full [&::-webkit-search-cancel-button]:appearance-none border border-border bg-surface/80 pl-14 pr-14 text-lg outline-none backdrop-blur placeholder:text-muted focus:border-brand'
+          className='h-14 w-full appearance-none rounded-full [&::-webkit-search-cancel-button]:appearance-none border border-border bg-surface/80 pl-14 pr-28 text-lg outline-none backdrop-blur placeholder:text-muted focus:border-brand'
         />
+        <button
+          type='button'
+          aria-label={
+            filterCount > 0 ? `Filters, ${filterCount} applied` : 'Filters'
+          }
+          aria-haspopup='dialog'
+          onClick={() => setFiltersOpen(true)}
+          className={cn(
+            'absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full transition-colors',
+            filterCount > 0 ? 'bg-brand text-on-brand' : 'hover:bg-surface-2',
+          )}
+        >
+          <SlidersHorizontal className='size-5' aria-hidden />
+          {filterCount > 0 && (
+            <span
+              aria-hidden
+              className='absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-fg text-[11px] font-bold text-bg'
+            >
+              {filterCount}
+            </span>
+          )}
+        </button>
         {text && (
           <button
             type='button'
@@ -274,79 +309,28 @@ export function SearchPage() {
               setUrlQuery('')
               inputRef.current?.focus()
             }}
-            className='absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full hover:bg-surface-2'
+            className='absolute right-14 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full hover:bg-surface-2'
           >
             <X className='size-5' aria-hidden />
           </button>
         )}
       </form>
 
-      <div className='mt-6 flex flex-wrap justify-center gap-3'>
-        <FilterSelect
-          label='Country'
-          value={country}
-          // Text search can't filter by country (TMDB search results carry none).
-          disabled={mode === 'search' && !kids}
-          onChange={v => setParam('country', v)}
-        >
-          <option value={WORLDWIDE}>Worldwide</option>
-          {REGIONS.map(r => (
-            <option key={r.code} value={r.code}>
-              {r.name}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect
-          label='Language'
-          value={language ?? ''}
-          disabled={mode === 'search'}
-          onChange={v => setParam('lang', v || null)}
-        >
-          <option value=''>All languages</option>
-          {Object.entries(LANGUAGES).map(([code, name]) => (
-            <option key={code} value={code}>
-              {name}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect
-          label='Sort by'
-          value={sort}
-          disabled={mode === 'search'}
-          onChange={v => setParam('sort', v === 'trending' ? null : v)}
-        >
-          {SORTS.map(m => (
-            <option key={m} value={m}>
-              {SORT_LABELS[m]}
-            </option>
-          ))}
-        </FilterSelect>
-      </div>
-      {mode === 'search' && (
-        <p className='mt-2 text-center text-xs text-muted'>
-          Country and sort apply when browsing. Clear the search box to use
-          them.
-        </p>
+      {filtersOpen && (
+        <FilterDialog
+          initial={{ country, language, sort, genre }}
+          defaults={{
+            country: active?.region ?? WORLDWIDE,
+            language: null,
+            sort: 'trending',
+            genre: null,
+          }}
+          searching={mode === 'search'}
+          kids={kids}
+          onApply={applyFilters}
+          onClose={closeFilters}
+        />
       )}
-
-      <div
-        role='group'
-        aria-label='Filter by genre'
-        className='mt-6 flex flex-wrap justify-center gap-2'
-      >
-        <Chip pressed={genre === null} onClick={() => setGenre(null)}>
-          All
-        </Chip>
-        {GENRES.map(g => (
-          <Chip
-            key={g.id}
-            pressed={genre === g.id}
-            onClick={() => setGenre(g.id)}
-          >
-            {g.name}
-          </Chip>
-        ))}
-      </div>
 
       <section aria-labelledby='results-heading' className='mt-10'>
         <h2 id='results-heading' className='mb-5 text-2xl font-extrabold'>
@@ -359,16 +343,21 @@ export function SearchPage() {
         </p>
 
         {query.isError ? (
-          <div role='alert' className='space-y-3 py-10 text-center'>
-            <p className='text-muted'>{query.error.message}</p>
-            <button
-              type='button'
-              onClick={() => void query.refetch()}
-              className='rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand hover:bg-brand-hover'
-            >
-              Try again
-            </button>
-          </div>
+          <Alert
+            variant='error'
+            title='Couldn’t load results'
+            action={
+              <button
+                type='button'
+                onClick={() => void query.refetch()}
+                className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+              >
+                Try again
+              </button>
+            }
+          >
+            {query.error.message}
+          </Alert>
         ) : query.isPending ? (
           <div
             aria-hidden
@@ -409,63 +398,5 @@ export function SearchPage() {
         )}
       </section>
     </div>
-  )
-}
-
-function FilterSelect({
-  label,
-  value,
-  disabled,
-  onChange,
-  children,
-}: {
-  label: string
-  value: string
-  disabled?: boolean
-  onChange: (value: string) => void
-  children: React.ReactNode
-}) {
-  const id = useId()
-  return (
-    <div className='flex items-center gap-2'>
-      <label htmlFor={id} className='text-sm text-muted'>
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value}
-        disabled={disabled}
-        onChange={e => onChange(e.target.value)}
-        className='h-11 rounded-full border border-border bg-surface/70 px-4 text-sm outline-none focus:border-brand disabled:opacity-50'
-      >
-        {children}
-      </select>
-    </div>
-  )
-}
-
-function Chip({
-  pressed,
-  onClick,
-  children,
-}: {
-  pressed: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type='button'
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={cn(
-        'rounded-full border px-4 py-2.5 text-sm font-medium transition-colors',
-        pressed
-          ? 'border-brand bg-brand text-on-brand'
-          : 'border-border bg-surface/60 hover:border-muted',
-      )}
-    >
-      {children}
-    </button>
   )
 }

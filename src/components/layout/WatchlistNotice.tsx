@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLastToggleError } from '@/features/watchlist/useWatchlist'
+import { Alert } from '@/components/ui/Alert'
 
 /** Tells the user when a save/remove failed and was rolled back. */
 export function WatchlistNotice() {
@@ -15,11 +16,13 @@ export function WatchlistNotice() {
 
   if (!visible) return null
   return (
-    <div
-      role='alert'
-      className='fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm rounded-2xl border border-danger/50 bg-surface px-4 py-3 text-sm shadow-2xl sm:bottom-6'
+    <Alert
+      variant='error'
+      title='Couldn’t update My List'
+      onDismiss={() => setDismissedAt(errorAt)}
+      className='fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm bg-surface shadow-2xl sm:bottom-6'
     >
-      Couldn’t update My List. Check your connection and try again.
-    </div>
+      Check your connection and try again.
+    </Alert>
   )
 }

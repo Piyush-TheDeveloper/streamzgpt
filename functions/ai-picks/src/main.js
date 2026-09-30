@@ -1,6 +1,7 @@
 import {
   buildMessages,
   enrichPicks,
+  fetchProfileKids,
   parsePicks,
   validateInput,
 } from './logic.js'
@@ -10,7 +11,7 @@ const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 /**
  * POST { profileId, prompt?, mood?, genres?, saved? }
- *  -> 200 { picks: [{ movie, reason }] }
+ *  -> 200 { picks: [{ movie, reason }], partial: boolean }
  * Keys (GROQ_API_KEY, TMDB_TOKEN) come from function variables and never reach
  * the browser. Execute permission is limited to signed-in users, and the kids
  * restriction comes from the caller's own profile row, not from the request.
@@ -78,14 +79,25 @@ export default async ({ req, res, log, error }) => {
   }
 
   const picks = parsePicks(content)
-  const enriched = await enrichPicks({
+  const { items, errors, lastError } = await enrichPicks({
     picks,
     token: TMDB_TOKEN,
     kids: input.kids,
     savedTitles: input.saved,
   })
+  if (errors > 0) {
+    error(
+      `TMDB lookups failed: ${errors}/${picks.length} (${lastError?.message})`,
+    )
+  }
+  // Every lookup erroring means TMDB is down or the token is wrong, not "no matches".
+  if (picks.length > 0 && errors === picks.length) {
+    return res.json({ error: 'upstream_error' }, 502)
+  }
   log(
-    `picks requested=${picks.length} returned=${enriched.length} kids=${input.kids}`,
+    `picks requested=${picks.length} returned=${items.length} kids=${input.kids}`,
   )
-  return res.json({ picks: enriched })
+  // `partial` lets the UI offer a retry when some lookups failed, instead of
+  // passing off a thin list as the complete answer.
+  return res.json({ picks: items, partial: errors > 0 })
 }

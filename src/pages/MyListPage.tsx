@@ -3,6 +3,7 @@ import { MovieGrid } from '@/components/movie/MovieGrid'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { useWatchlist } from '@/features/watchlist/useWatchlist'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 export function MyListPage() {
   useDocumentTitle('My List')
@@ -18,16 +19,19 @@ export function MyListPage() {
 
       <div className='mt-10' aria-busy={status === 'loading'}>
         {status === 'error' ? (
-          <div role='alert' className='space-y-3 py-10'>
-            <p className='text-muted'>Couldn’t load your list.</p>
-            <button
-              type='button'
-              onClick={() => void refetch()}
-              className='rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand hover:bg-brand-hover'
-            >
-              Try again
-            </button>
-          </div>
+          <Alert
+            variant='error'
+            title='Couldn’t load your list'
+            action={
+              <button
+                type='button'
+                onClick={() => void refetch()}
+                className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+              >
+                Try again
+              </button>
+            }
+          />
         ) : status === 'loading' ? (
           <div
             aria-hidden

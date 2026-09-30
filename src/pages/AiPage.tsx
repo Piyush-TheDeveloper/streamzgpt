@@ -6,8 +6,14 @@ import { useProfile } from '@/features/profiles/ProfileContext'
 import { useWatchlist } from '@/features/watchlist/useWatchlist'
 import { GENRES } from '@/lib/genres'
 import { MOODS } from '@/lib/moods'
-import { aiErrorMessage, getAiPicks } from '@/services/ai'
+import {
+  aiErrorMessage,
+  aiErrorTitle,
+  aiErrorVariant,
+  getAiPicks,
+} from '@/services/ai'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 const KIDS_MOODS = new Set(['cozy', 'epic'])
 const EXAMPLES = [
@@ -48,7 +54,18 @@ export function AiPage() {
     if (!picks.isPending) ask()
   }
 
-  const results = picks.data
+  const results = picks.data?.picks
+  const partial = picks.data?.partial ?? false
+  const retryButton = (
+    <button
+      type='button'
+      onClick={() => ask()}
+      disabled={picks.isPending}
+      className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+    >
+      Try again
+    </button>
+  )
 
   return (
     <div className='mx-auto max-w-5xl px-4 pb-16 pt-28 sm:px-6'>
@@ -106,7 +123,7 @@ export function AiPage() {
       <div
         className='mt-4 flex flex-wrap justify-center gap-2'
         role='group'
-        aria-label='Suggestions'
+        aria-label='Moods and ideas'
       >
         {moods.map(m => (
           <button
@@ -158,7 +175,7 @@ export function AiPage() {
       </div>
 
       <section
-        aria-label='Suggestions'
+        aria-label='Suggested films'
         className='mt-12'
         aria-busy={picks.isPending}
       >
@@ -184,37 +201,51 @@ export function AiPage() {
             ))}
           </ul>
         ) : picks.isError ? (
-          <div
-            role='alert'
-            className='rounded-3xl border border-border bg-surface/60 px-6 py-10 text-center'
+          <Alert
+            variant={aiErrorVariant(picks.error)}
+            title={aiErrorTitle(picks.error)}
+            onDismiss={() => picks.reset()}
           >
-            <p className='text-muted'>{aiErrorMessage(picks.error)}</p>
-            <button
-              type='button'
-              onClick={() => picks.reset()}
-              className='mt-4 rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:border-fg'
-            >
-              Dismiss
-            </button>
-          </div>
+            {aiErrorMessage(picks.error)}
+          </Alert>
         ) : results && results.length === 0 ? (
-          <p className='py-10 text-center text-muted'>
-            No matches this time. Try rewording it, or tap “Surprise me”.
-          </p>
+          partial ? (
+            <Alert
+              variant='warning'
+              title='Suggestions couldn’t be loaded'
+              action={retryButton}
+            >
+              The film database didn’t respond. Try again in a moment.
+            </Alert>
+          ) : (
+            <Alert variant='info' title='No matches this time'>
+              Try rewording it, or tap “Surprise me”.
+            </Alert>
+          )
         ) : results ? (
-          <ul className='grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4'>
-            {results.map(({ movie, reason }) => (
-              <li key={movie.id} className='rise-in'>
-                <MovieCard movie={movie} className='w-full' />
-                {reason && (
-                  <p className='mt-2 text-sm leading-snug text-fg/80'>
-                    <span className='sr-only'>Why: </span>
-                    {reason}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            {partial && (
+              <Alert
+                variant='warning'
+                title='Some suggestions couldn’t be loaded'
+                action={retryButton}
+                className='mb-6'
+              />
+            )}
+            <ul className='grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4'>
+              {results.map(({ movie, reason }) => (
+                <li key={movie.id} className='rise-in'>
+                  <MovieCard movie={movie} className='w-full' />
+                  {reason && (
+                    <p className='mt-2 text-sm leading-snug text-fg/80'>
+                      <span className='sr-only'>Why: </span>
+                      {reason}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
         ) : null}
       </section>
     </div>
