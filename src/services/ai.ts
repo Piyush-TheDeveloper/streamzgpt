@@ -30,14 +30,38 @@ export class AiError extends Error {
   }
 }
 
-export const aiErrorMessage = (e: unknown) => {
-  switch (e instanceof AiError ? e.code : 'unknown') {
+const codeOf = (e: unknown): AiErrorCode =>
+  e instanceof AiError ? e.code : 'unknown'
+
+/** Setup and busy states are warnings; real failures are errors. */
+export const aiErrorVariant = (e: unknown): 'error' | 'warning' =>
+  ['not_configured', 'rate_limited', 'forbidden'].includes(codeOf(e))
+    ? 'warning'
+    : 'error'
+
+export const aiErrorTitle = (e: unknown) => {
+  switch (codeOf(e)) {
     case 'not_configured':
-      return 'AI picks aren’t switched on yet. The site owner needs to finish setup.'
+      return 'AI picks aren’t set up yet'
     case 'rate_limited':
-      return 'The AI is busy right now. Give it a minute and try again.'
+      return 'The AI is busy'
+    case 'forbidden':
+      return 'Not available for this profile'
+    case 'unauthorized':
+      return 'Please sign in again'
+    default:
+      return 'Couldn’t get suggestions'
+  }
+}
+
+export const aiErrorMessage = (e: unknown) => {
+  switch (codeOf(e)) {
+    case 'not_configured':
+      return 'The site owner needs to finish setup before suggestions work.'
+    case 'rate_limited':
+      return 'Too many requests at once. Give it a minute and try again.'
     case 'upstream_error':
-      return 'The AI service had a hiccup. Please try again.'
+      return 'The suggestion service failed. Please try again in a moment.'
     case 'forbidden':
       return 'This profile can’t use AI picks. Try switching profiles.'
     case 'unauthorized':

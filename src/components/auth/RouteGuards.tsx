@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/profiles/ProfileContext'
+import { Alert } from '@/components/ui/Alert'
 
 export function FullScreenSpinner() {
   return (
@@ -18,16 +19,22 @@ export function RequireAuth() {
   if (error && !user) {
     return (
       <div className='grid min-h-dvh place-items-center px-4 text-center'>
-        <div className='space-y-3'>
-          <p role='alert'>Couldn’t reach the server.</p>
-          <button
-            type='button'
-            onClick={retry}
-            className='rounded-md bg-brand text-on-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
-          >
-            Try again
-          </button>
-        </div>
+        <Alert
+          variant='error'
+          title='Couldn’t reach the server'
+          className='max-w-sm'
+          action={
+            <button
+              type='button'
+              onClick={retry}
+              className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+            >
+              Try again
+            </button>
+          }
+        >
+          Check your connection, then try again.
+        </Alert>
       </div>
     )
   }
@@ -55,16 +62,20 @@ export function RequireProfile() {
   if (status === 'error') {
     return (
       <div className='grid min-h-dvh place-items-center px-4 text-center'>
-        <div className='space-y-3'>
-          <p role='alert'>Couldn’t load your profiles.</p>
-          <button
-            type='button'
-            onClick={refetch}
-            className='rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand hover:bg-brand-hover'
-          >
-            Try again
-          </button>
-        </div>
+        <Alert
+          variant='error'
+          title='Couldn’t load your profiles'
+          className='max-w-sm'
+          action={
+            <button
+              type='button'
+              onClick={refetch}
+              className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+            >
+              Try again
+            </button>
+          }
+        />
       </div>
     )
   }

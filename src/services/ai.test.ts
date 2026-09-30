@@ -7,7 +7,8 @@ vi.mock('@/lib/appwrite', () => ({
 }))
 
 import { AppwriteException } from 'appwrite'
-const { AiError, aiErrorMessage, getAiPicks } = await import('./ai')
+const { AiError, aiErrorMessage, aiErrorTitle, aiErrorVariant, getAiPicks } =
+  await import('./ai')
 
 const exec = (status: number, body: unknown, extra = {}) => ({
   responseStatusCode: status,
@@ -67,7 +68,20 @@ describe('getAiPicks', () => {
 
 describe('aiErrorMessage', () => {
   it('has friendly copy per code', () => {
-    expect(aiErrorMessage(new AiError('rate_limited'))).toMatch(/busy/)
+    expect(aiErrorMessage(new AiError('rate_limited'))).toMatch(/minute/)
     expect(aiErrorMessage(new Error('x'))).toMatch(/Couldn’t/)
+  })
+})
+
+describe('aiErrorVariant / aiErrorTitle', () => {
+  it('treats setup and busy states as warnings, failures as errors', () => {
+    expect(aiErrorVariant(new AiError('not_configured'))).toBe('warning')
+    expect(aiErrorVariant(new AiError('rate_limited'))).toBe('warning')
+    expect(aiErrorVariant(new AiError('upstream_error'))).toBe('error')
+    expect(aiErrorVariant(new Error('x'))).toBe('error')
+  })
+  it('has a title for every code', () => {
+    expect(aiErrorTitle(new AiError('rate_limited'))).toBe('The AI is busy')
+    expect(aiErrorTitle(new Error('x'))).toBe('Couldn’t get suggestions')
   })
 })

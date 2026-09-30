@@ -1,6 +1,7 @@
 import {
   buildMessages,
   enrichPicks,
+  fetchProfileKids,
   parsePicks,
   validateInput,
 } from './logic.js'
@@ -78,14 +79,23 @@ export default async ({ req, res, log, error }) => {
   }
 
   const picks = parsePicks(content)
-  const enriched = await enrichPicks({
+  const { items, errors, lastError } = await enrichPicks({
     picks,
     token: TMDB_TOKEN,
     kids: input.kids,
     savedTitles: input.saved,
   })
+  if (errors > 0) {
+    error(
+      `TMDB lookups failed: ${errors}/${picks.length} (${lastError?.message})`,
+    )
+  }
+  // Every lookup erroring means TMDB is down or the token is wrong, not "no matches".
+  if (picks.length > 0 && errors === picks.length) {
+    return res.json({ error: 'upstream_error' }, 502)
+  }
   log(
-    `picks requested=${picks.length} returned=${enriched.length} kids=${input.kids}`,
+    `picks requested=${picks.length} returned=${items.length} kids=${input.kids}`,
   )
-  return res.json({ picks: enriched })
+  return res.json({ picks: items })
 }

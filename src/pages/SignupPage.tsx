@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { authErrorMessage, signUp } from '@/services/auth'
 import { validateEmail, validateName, validatePassword } from '@/lib/validation'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 export function SignupPage() {
   useDocumentTitle('Create account')
@@ -77,11 +78,7 @@ export function SignupPage() {
           autoComplete='new-password'
           error={errors.password}
         />
-        {formError && (
-          <p role='alert' className='text-sm text-danger'>
-            {formError}
-          </p>
-        )}
+        {formError && <Alert variant='error' title={formError} />}
         <button
           type='submit'
           disabled={busy}

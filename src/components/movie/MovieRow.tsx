@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useInView } from '@/hooks/useInView'
 import type { Feed } from '@/lib/feeds'
 import { MovieCard } from './MovieCard'
+import { Alert } from '@/components/ui/Alert'
 
 export function MovieRow({
   feed,
@@ -27,9 +28,9 @@ export function MovieRow({
     <section ref={ref} aria-label={title} className='space-y-3'>
       <h2 className='text-2xl font-extrabold'>{title}</h2>
       {error ? (
-        <p role='alert' className='text-sm text-muted'>
+        <Alert variant='error' title={`Couldn’t load “${title}”`}>
           {error.message}
-        </p>
+        </Alert>
       ) : (
         <div className='scrollbar-none -mx-4 flex gap-4 overflow-x-auto px-4 py-4 sm:-mx-6 sm:px-6'>
           {isPending

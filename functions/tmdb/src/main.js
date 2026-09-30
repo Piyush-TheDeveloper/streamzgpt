@@ -19,8 +19,10 @@ const inflight = new Map()
 export default async ({ req, res, error }) => {
   if (req.method !== 'POST')
     return res.json({ error: 'method_not_allowed' }, 405)
-  if (!req.headers['x-appwrite-user-id'])
-    return res.json({ error: 'unauthorized' }, 401)
+  const userId = req.headers['x-appwrite-user-id']
+  if (!userId) return res.json({ error: 'unauthorized' }, 401)
+  // One account can't drain the shared TMDB quota.
+  if (!allow(userId)) return res.json({ error: 'rate_limited' }, 429)
   const token = process.env.TMDB_TOKEN
   if (!token) return res.json({ error: 'not_configured' }, 503)
 

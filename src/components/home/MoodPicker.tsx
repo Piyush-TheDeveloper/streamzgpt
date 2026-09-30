@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { genreParam, MOODS } from '@/lib/moods'
 import { discoverMovies } from '@/services/tmdb'
 import { MovieCard } from '@/components/movie/MovieCard'
+import { Alert } from '@/components/ui/Alert'
 
 const KIDS_MOODS = new Set(['cozy', 'epic'])
 
@@ -48,9 +49,9 @@ export function MoodPicker({ kids }: { kids: boolean }) {
         ))}
       </div>
       {error ? (
-        <p role='alert' className='text-sm text-muted'>
+        <Alert variant='error' title='Couldn’t load these films'>
           {error.message}
-        </p>
+        </Alert>
       ) : (
         <div
           aria-busy={isPending}

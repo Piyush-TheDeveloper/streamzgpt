@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { authErrorMessage, signIn } from '@/services/auth'
 import { validateEmail, validatePassword } from '@/lib/validation'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 export function LoginPage() {
   useDocumentTitle('Sign in')
@@ -71,11 +72,7 @@ export function LoginPage() {
           autoComplete='current-password'
           error={errors.password}
         />
-        {formError && (
-          <p role='alert' className='text-sm text-danger'>
-            {formError}
-          </p>
-        )}
+        {formError && <Alert variant='error' title={formError} />}
         <button
           type='submit'
           disabled={busy}

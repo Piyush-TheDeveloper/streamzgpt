@@ -6,8 +6,14 @@ import { useProfile } from '@/features/profiles/ProfileContext'
 import { useWatchlist } from '@/features/watchlist/useWatchlist'
 import { GENRES } from '@/lib/genres'
 import { MOODS } from '@/lib/moods'
-import { aiErrorMessage, getAiPicks } from '@/services/ai'
+import {
+  aiErrorMessage,
+  aiErrorTitle,
+  aiErrorVariant,
+  getAiPicks,
+} from '@/services/ai'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 const KIDS_MOODS = new Set(['cozy', 'epic'])
 const EXAMPLES = [
@@ -106,7 +112,7 @@ export function AiPage() {
       <div
         className='mt-4 flex flex-wrap justify-center gap-2'
         role='group'
-        aria-label='Suggestions'
+        aria-label='Moods and ideas'
       >
         {moods.map(m => (
           <button
@@ -158,7 +164,7 @@ export function AiPage() {
       </div>
 
       <section
-        aria-label='Suggestions'
+        aria-label='Suggested films'
         className='mt-12'
         aria-busy={picks.isPending}
       >
@@ -184,23 +190,17 @@ export function AiPage() {
             ))}
           </ul>
         ) : picks.isError ? (
-          <div
-            role='alert'
-            className='rounded-3xl border border-border bg-surface/60 px-6 py-10 text-center'
+          <Alert
+            variant={aiErrorVariant(picks.error)}
+            title={aiErrorTitle(picks.error)}
+            onDismiss={() => picks.reset()}
           >
-            <p className='text-muted'>{aiErrorMessage(picks.error)}</p>
-            <button
-              type='button'
-              onClick={() => picks.reset()}
-              className='mt-4 rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:border-fg'
-            >
-              Dismiss
-            </button>
-          </div>
+            {aiErrorMessage(picks.error)}
+          </Alert>
         ) : results && results.length === 0 ? (
-          <p className='py-10 text-center text-muted'>
-            No matches this time. Try rewording it, or tap “Surprise me”.
-          </p>
+          <Alert variant='info' title='No matches this time'>
+            Try rewording it, or tap “Surprise me”.
+          </Alert>
         ) : results ? (
           <ul className='grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4'>
             {results.map(({ movie, reason }) => (

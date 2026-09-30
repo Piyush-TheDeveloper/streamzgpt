@@ -5,6 +5,7 @@ import { Avatar } from '@/components/profile/Avatar'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { MAX_PROFILES, type Profile } from '@/types/profile'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 export function ProfilesPage() {
   useDocumentTitle('Who’s watching?')
@@ -35,16 +36,20 @@ export function ProfilesPage() {
           {managing ? 'Manage profiles' : 'Who’s watching?'}
         </h1>
         {status === 'error' ? (
-          <div className='mt-8 space-y-3'>
-            <p role='alert'>Couldn’t load your profiles.</p>
-            <button
-              type='button'
-              onClick={refetch}
-              className='rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand'
-            >
-              Try again
-            </button>
-          </div>
+          <Alert
+            variant='error'
+            title='Couldn’t load your profiles'
+            className='mx-auto mt-8 max-w-sm'
+            action={
+              <button
+                type='button'
+                onClick={refetch}
+                className='rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-hover'
+              >
+                Try again
+              </button>
+            }
+          />
         ) : (
           <ul className='mt-10 flex flex-wrap justify-center gap-6 sm:gap-10'>
             {profiles.map(p => (

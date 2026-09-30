@@ -16,7 +16,7 @@ function BackdropImage({ src }: { src: string }) {
       decoding='async'
       onLoad={() => setLoaded(true)}
       className={cn(
-        'absolute inset-0 size-full scale-125 object-cover blur-[48px] saturate-150 transition-opacity duration-700 will-change-[opacity]',
+        'absolute inset-0 size-full scale-110 object-cover blur-[22px] saturate-150 transition-opacity duration-700 will-change-[opacity]',
         loaded ? 'opacity-60' : 'opacity-0',
       )}
     />
@@ -53,7 +53,7 @@ export function BlurBackdrop({ src }: { src: string | null }) {
       {layers.map(l => (
         <BackdropImage key={l.id} src={l.src} />
       ))}
-      <div className='absolute inset-0 bg-bg/35' />
+      <div className='absolute inset-0 bg-bg/45' />
     </div>
   )
 }

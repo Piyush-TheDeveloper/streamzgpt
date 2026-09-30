@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { validateProfileName } from '@/lib/validation'
 import { MAX_PROFILES, type Profile } from '@/types/profile'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Alert } from '@/components/ui/Alert'
 
 export function ProfileFormPage() {
   const { id } = useParams()
@@ -233,11 +234,7 @@ function ProfileForm({ existing }: { existing?: Profile }) {
           />
         </div>
 
-        {formError && (
-          <p role='alert' className='text-sm text-danger'>
-            {formError}
-          </p>
-        )}
+        {formError && <Alert variant='error' title={formError} />}
 
         <div className='flex flex-wrap items-center gap-3'>
           <button
