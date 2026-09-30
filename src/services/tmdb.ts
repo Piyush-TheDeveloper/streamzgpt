@@ -49,6 +49,7 @@ export interface DiscoverOptions {
   genres?: string
   sort?: string
   minVotes?: number
+  page?: number
   /** Family-friendly only: rated PG or below, defaulting to Animation|Family. */
   kids?: boolean
 }
@@ -58,12 +59,13 @@ export function discoverPath({
   sort = 'popularity.desc',
   minVotes = 300,
   kids = false,
+  page = 1,
 }: DiscoverOptions) {
   const params = new URLSearchParams({
     sort_by: sort,
     'vote_count.gte': String(minVotes),
     include_adult: 'false',
-    page: '1',
+    page: String(page),
   })
   const g = genres || (kids ? '16|10751' : '')
   if (g) params.set('with_genres', g)
@@ -80,6 +82,19 @@ export const discoverMovies = (
   options: DiscoverOptions,
   signal?: AbortSignal,
 ) => request<Paginated<Movie>>(discoverPath(options), signal)
+
+export const searchMovies = (
+  query: string,
+  page: number,
+  signal?: AbortSignal,
+) =>
+  request<Paginated<Movie>>(
+    `/search/movie?${new URLSearchParams({ query, page: String(page), include_adult: 'false' })}`,
+    signal,
+  )
+
+export const getTrendingMovies = (page: number, signal?: AbortSignal) =>
+  request<Paginated<Movie>>(`/trending/movie/week?page=${page}`, signal)
 
 export const getMovieDetails = (id: number, signal?: AbortSignal) =>
   request<MovieDetails>(

@@ -4,9 +4,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
 import { getMovieDetails, imageUrl } from '@/services/tmdb'
 import { releaseYear } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import type { Movie } from '@/types/movie'
 
-export function MovieCard({ movie }: { movie: Movie }) {
+export function MovieCard({
+  movie,
+  className = 'w-36 shrink-0 sm:w-44',
+}: {
+  movie: Movie
+  className?: string
+}) {
   const queryClient = useQueryClient()
   const poster = imageUrl(movie.poster_path, 'w342')
   const year = releaseYear(movie.release_date)
@@ -37,7 +44,7 @@ export function MovieCard({ movie }: { movie: Movie }) {
       onClick={nameForTransition}
       onPointerEnter={prefetch}
       onFocus={prefetch}
-      className='group block w-36 shrink-0 sm:w-44'
+      className={cn('group block', className)}
     >
       <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-focus-visible:-translate-y-1.5'>
         {poster ? (

@@ -33,7 +33,7 @@ src/
 3. Browse redesign: hero, detail pages, trailers ✅
    3b. "Afterglow" redesign ✅
    3c. Profiles + account menu ✅
-4. Search and discovery
+4. Search and discovery ✅
 5. Watchlist / favourites
 6. AI suggestions (Groq via Appwrite Function)
 7. Tests, a11y, CI/deploy
