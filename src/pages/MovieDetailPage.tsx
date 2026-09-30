@@ -75,7 +75,7 @@ export function MovieDetailPage() {
           />
         )}
         <div className='absolute inset-0 bg-linear-to-t from-bg to-transparent' />
-        <div className='relative mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row'>
+        <div className='relative mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-10 pt-28 sm:px-6 md:flex-row'>
           {poster && (
             <img
               src={poster}

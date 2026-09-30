@@ -27,13 +27,20 @@ export function dominantColor(data: ArrayLike<number>): RGB {
 
 export const toCss = ([r, g, b]: RGB) => `rgb(${r} ${g} ${b})`
 
-const cache = new Map<string, RGB>()
+// Caches the promise (not just the result) so concurrent calls share one load,
+// and failures are remembered instead of re-downloading the image every time.
+const cache = new Map<string, Promise<RGB | null>>()
 
 /** Samples a tiny downscaled copy of the image. Resolves null if it can't. */
 export function sampleImageColor(url: string): Promise<RGB | null> {
   const hit = cache.get(url)
-  if (hit) return Promise.resolve(hit)
-  return new Promise(resolve => {
+  if (hit) return hit
+  const promise = new Promise<RGB | null>(resolve => {
+    const timeout = window.setTimeout(() => resolve(null), 5000)
+    const done = (c: RGB | null) => {
+      window.clearTimeout(timeout)
+      resolve(c)
+    }
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
@@ -41,16 +48,16 @@ export function sampleImageColor(url: string): Promise<RGB | null> {
         const canvas = document.createElement('canvas')
         canvas.width = canvas.height = 16
         const ctx = canvas.getContext('2d', { willReadFrequently: true })
-        if (!ctx) return resolve(null)
+        if (!ctx) return done(null)
         ctx.drawImage(img, 0, 0, 16, 16)
-        const color = dominantColor(ctx.getImageData(0, 0, 16, 16).data)
-        cache.set(url, color)
-        resolve(color)
+        done(dominantColor(ctx.getImageData(0, 0, 16, 16).data))
       } catch {
-        resolve(null)
+        done(null)
       }
     }
-    img.onerror = () => resolve(null)
+    img.onerror = () => done(null)
     img.src = url
   })
+  cache.set(url, promise)
+  return promise
 }

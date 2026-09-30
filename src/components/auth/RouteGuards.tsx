@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/features/auth/AuthContext'
 
-function FullScreenSpinner() {
+export function FullScreenSpinner() {
   return (
     <div className='grid min-h-dvh place-items-center' role='status'>
       <div className='size-8 animate-spin rounded-full border-2 border-border border-t-brand' />

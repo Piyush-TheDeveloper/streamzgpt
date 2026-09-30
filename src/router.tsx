@@ -1,6 +1,10 @@
 import { createBrowserRouter } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { GuestOnly, RequireAuth } from '@/components/auth/RouteGuards'
+import {
+  FullScreenSpinner,
+  GuestOnly,
+  RequireAuth,
+} from '@/components/auth/RouteGuards'
 import { HomePage } from '@/pages/HomePage'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -11,12 +15,14 @@ export const router = createBrowserRouter([
     children: [
       {
         path: 'login',
+        HydrateFallback: FullScreenSpinner,
         lazy: async () => ({
           Component: (await import('@/pages/LoginPage')).LoginPage,
         }),
       },
       {
         path: 'signup',
+        HydrateFallback: FullScreenSpinner,
         lazy: async () => ({
           Component: (await import('@/pages/SignupPage')).SignupPage,
         }),
@@ -32,6 +38,7 @@ export const router = createBrowserRouter([
           { index: true, element: <HomePage /> },
           {
             path: 'movie/:id',
+            HydrateFallback: FullScreenSpinner,
             lazy: async () => ({
               Component: (await import('@/pages/MovieDetailPage'))
                 .MovieDetailPage,

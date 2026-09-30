@@ -32,7 +32,7 @@ export function AppLayout() {
           id='main'
           ref={mainRef}
           tabIndex={-1}
-          className='flex-1 pb-24 pt-20 outline-none sm:pb-0'
+          className='flex-1 pb-24 outline-none sm:pb-0'
         >
           <Outlet />
         </main>

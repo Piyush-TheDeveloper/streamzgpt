@@ -1,19 +1,33 @@
 import type { MouseEvent } from 'react'
 import { Link } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
-import { imageUrl } from '@/services/tmdb'
+import { getMovieDetails, imageUrl } from '@/services/tmdb'
 import { releaseYear } from '@/lib/format'
 import type { Movie } from '@/types/movie'
 
 export function MovieCard({ movie }: { movie: Movie }) {
+  const queryClient = useQueryClient()
   const poster = imageUrl(movie.poster_path, 'w342')
   const year = releaseYear(movie.release_date)
 
-  // Name the poster only at click time so duplicates on the page (the same
-  // film can appear in several rows) never clash in the view transition.
+  // Warm the detail cache so the page (and its poster) renders immediately,
+  // which is what lets the poster morph land on a real element.
+  const prefetch = () =>
+    void queryClient.prefetchQuery({
+      queryKey: ['movie', movie.id],
+      queryFn: ({ signal }) => getMovieDetails(movie.id, signal),
+    })
+
+  // Name the poster only for a plain click, and only briefly, so duplicates on
+  // the page (one film in several rows) never clash in the view transition.
   const nameForTransition = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+      return
     const img = e.currentTarget.querySelector('img')
-    if (img) img.style.viewTransitionName = `poster-${movie.id}`
+    if (!img) return
+    img.style.viewTransitionName = `poster-${movie.id}`
+    window.setTimeout(() => (img.style.viewTransitionName = ''), 1000)
   }
 
   return (
@@ -21,6 +35,8 @@ export function MovieCard({ movie }: { movie: Movie }) {
       to={`/movie/${movie.id}`}
       viewTransition
       onClick={nameForTransition}
+      onPointerEnter={prefetch}
+      onFocus={prefetch}
       className='group block w-36 shrink-0 sm:w-44'
     >
       <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-focus-visible:-translate-y-1.5'>

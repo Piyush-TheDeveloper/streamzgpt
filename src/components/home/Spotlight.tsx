@@ -52,6 +52,8 @@ export function Spotlight() {
     return () => io.disconnect()
   }, [movies])
 
+  useEffect(() => () => window.clearTimeout(navTimer.current), [])
+
   const center = (i: number) => {
     const el = itemRefs.current[i]
     if (!el) return
@@ -113,9 +115,10 @@ export function Spotlight() {
       className='relative'
     >
       <h1 className='sr-only'>StreamzGPT — now playing</h1>
-      <div className='relative' style={{ perspective: '900px' }}>
+      <div className='relative'>
         <ul
           ref={reelRef}
+          style={{ perspective: '900px' }}
           onKeyDown={onKeyDown}
           className='scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto px-[calc(50%-6rem)] py-8 sm:px-[calc(50%-8rem)]'
         >
@@ -152,24 +155,26 @@ export function Spotlight() {
           <RoundButton
             label='Previous movie'
             onClick={() => go(-1)}
-            disabled={active === 0}
+            atEnd={active === 0}
           >
             <ChevronLeft className='size-6' aria-hidden />
           </RoundButton>
           <RoundButton
             label='Next movie'
             onClick={() => go(1)}
-            disabled={active === movies.length - 1}
+            atEnd={active === movies.length - 1}
           >
             <ChevronRight className='size-6' aria-hidden />
           </RoundButton>
         </div>
       </div>
 
+      <p className='sr-only' aria-live='polite'>
+        {current.title}, {active + 1} of {movies.length}
+      </p>
       <div
         key={current.id}
         className='rise-in mx-auto max-w-2xl px-4 text-center'
-        aria-live='polite'
       >
         <h2 className='text-3xl font-extrabold sm:text-5xl'>{current.title}</h2>
         <p className='mt-2 flex items-center justify-center gap-3 text-sm text-muted'>
@@ -205,19 +210,22 @@ export function Spotlight() {
 function RoundButton({
   label,
   children,
-  ...props
+  onClick,
+  atEnd,
 }: {
   label: string
   children: React.ReactNode
   onClick: () => void
-  disabled: boolean
+  atEnd: boolean
 }) {
+  // aria-disabled (not disabled) so keyboard focus isn't dropped at the ends.
   return (
     <button
       type='button'
       aria-label={label}
-      {...props}
-      className='pointer-events-auto grid size-12 place-items-center rounded-full border border-border bg-bg/70 backdrop-blur transition hover:bg-surface-2 disabled:opacity-30'
+      aria-disabled={atEnd}
+      onClick={() => !atEnd && onClick()}
+      className='pointer-events-auto grid size-12 place-items-center rounded-full border border-border bg-bg/70 backdrop-blur transition hover:bg-surface-2 aria-disabled:opacity-30'
     >
       {children}
     </button>
