@@ -1,0 +1,7 @@
+{
+  "name": "tmdb",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Appwrite Function: allow-listed, cached proxy for read-only TMDB requests."
+}

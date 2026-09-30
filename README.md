@@ -78,3 +78,17 @@ Execute permission is limited to signed-in users, and the function has the
 restriction (only titles whose US certification is G/PG, checked per title) is
 decided **server-side from that profile**, not from anything the browser sends.
 The function timeout is set to 30 s (Groq 15 s + TMDB lookups).
+
+## TMDB proxy (Appwrite Function)
+
+`functions/tmdb` keeps the TMDB token off the client. The app calls the `tmdb`
+function with a path such as `/movie/popular?page=1`; the function checks it
+against an allow-list of read-only endpoints and parameters, forces
+`include_adult=false`, calls TMDB with `TMDB_TOKEN`, and caches successful
+responses for 10 minutes. Execute permission is limited to signed-in users.
+
+- **Production:** add a secret variable `TMDB_TOKEN` to the `tmdb` function,
+  redeploy it, then delete `VITE_TMDB_TOKEN` from the site and redeploy the site.
+- **Local development:** set `VITE_TMDB_TOKEN` in `.env.local` to call TMDB
+  directly (that token is visible in the browser, so only use it locally). If it
+  is unset, requests go through the function.

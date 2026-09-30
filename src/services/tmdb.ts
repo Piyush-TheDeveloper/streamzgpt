@@ -1,3 +1,5 @@
+import { ExecutionMethod } from 'appwrite'
+import { functions, TMDB_FUNCTION } from '@/lib/appwrite'
 import { env } from '@/lib/env'
 import type {
   Movie,
@@ -19,14 +21,12 @@ export class TmdbError extends Error {
   }
 }
 
-async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  if (!env.tmdbToken) {
-    throw new TmdbError(
-      import.meta.env.DEV
-        ? 'Missing VITE_TMDB_TOKEN. See .env.example.'
-        : 'Movies are unavailable right now.',
-    )
-  }
+const UNAVAILABLE = import.meta.env.DEV
+  ? 'TMDB is unavailable: set VITE_TMDB_TOKEN (local) or configure the `tmdb` function.'
+  : 'Movies are unavailable right now.'
+
+/** Direct call with a local token (development only; the token is public). */
+async function direct<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     signal,
     headers: {
@@ -37,6 +37,40 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   if (!res.ok)
     throw new TmdbError(`TMDB request failed (${res.status})`, res.status)
   return res.json() as Promise<T>
+}
+
+/** Production path: the `tmdb` Appwrite Function holds the token server-side. */
+async function viaFunction<T>(path: string): Promise<T> {
+  let execution
+  try {
+    execution = await functions.createExecution({
+      functionId: TMDB_FUNCTION,
+      body: JSON.stringify({ path }),
+      async: false,
+      xpath: '/',
+      method: ExecutionMethod.POST,
+      headers: { 'content-type': 'application/json' },
+    })
+  } catch {
+    throw new TmdbError(UNAVAILABLE)
+  }
+  const code = execution.responseStatusCode
+  if (code >= 400 || execution.status === 'failed') {
+    if (code === 404) throw new TmdbError('TMDB request failed (404)', 404)
+    throw new TmdbError(
+      code === 503 ? UNAVAILABLE : `TMDB request failed (${code})`,
+      code,
+    )
+  }
+  try {
+    return JSON.parse(execution.responseBody) as T
+  } catch {
+    throw new TmdbError(UNAVAILABLE)
+  }
+}
+
+function request<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return env.tmdbToken ? direct<T>(path, signal) : viaFunction<T>(path)
 }
 
 export const getMoviesByCategory = (
