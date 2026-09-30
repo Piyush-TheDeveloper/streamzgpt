@@ -17,3 +17,4 @@ export const tables = new TablesDB(client)
 
 export const DATABASE_ID = 'streamzgpt'
 export const PROFILES_TABLE = 'profiles'
+export const WATCHLIST_TABLE = 'watchlist'

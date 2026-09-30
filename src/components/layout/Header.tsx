@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router'
-import { Home, Search, Sparkles, type LucideIcon } from 'lucide-react'
+import { Bookmark, Home, Search, Sparkles, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProfileMenu } from './ProfileMenu'
 
@@ -7,6 +7,7 @@ const links: { to: string; label: string; end?: boolean; icon: LucideIcon }[] =
   [
     { to: '/', label: 'Home', end: true, icon: Home },
     { to: '/search', label: 'Search', icon: Search },
+    { to: '/list', label: 'My List', icon: Bookmark },
     { to: '/ai', label: 'AI Picks', icon: Sparkles },
   ]
 

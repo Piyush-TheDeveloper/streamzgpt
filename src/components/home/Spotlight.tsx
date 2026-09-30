@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Info, Star } from 'lucide-react'
+import { BlurBackdrop } from './BlurBackdrop'
 import { TrailerButton } from '@/components/movie/TrailerButton'
 import { heroButtons } from '@/components/movie/buttonStyles'
 import { useAmbientFromImage } from '@/hooks/useAmbientFromImage'
@@ -31,6 +32,10 @@ export function Spotlight({ feed }: { feed: Feed }) {
   const current = movies[active]
 
   useAmbientFromImage(imageUrl(current?.poster_path ?? null, 'w92'))
+  // Landscape art when TMDB has it, otherwise the poster; it's blurred anyway.
+  const backdropSrc =
+    imageUrl(current?.backdrop_path ?? null, 'w780') ??
+    imageUrl(current?.poster_path ?? null, 'w500')
 
   // Whichever poster crosses the centre line of the reel becomes active.
   const reelRef = useRef<HTMLUListElement>(null)
@@ -113,8 +118,9 @@ export function Spotlight({ feed }: { feed: Feed }) {
     <section
       aria-roledescription='carousel'
       aria-label='Now playing spotlight'
-      className='relative'
+      className='relative isolate'
     >
+      <BlurBackdrop src={backdropSrc} />
       <h1 className='sr-only'>StreamzGPT — now playing</h1>
       <div className='relative'>
         <ul

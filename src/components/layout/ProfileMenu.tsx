@@ -66,8 +66,11 @@ export function ProfileMenu() {
       ref={rootRef}
       className='relative'
       onBlur={e => {
-        // Tabbing out of the menu closes it.
-        if (open && !e.currentTarget.contains(e.relatedTarget)) setOpen(false)
+        // Tabbing out of the menu closes it. relatedTarget is null when a click
+        // lands on an element Safari/Firefox won't focus: ignore that case
+        // (outside clicks are handled by the pointerdown listener).
+        const next = e.relatedTarget as Node | null
+        if (open && next && !e.currentTarget.contains(next)) setOpen(false)
       }}
     >
       <button

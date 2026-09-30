@@ -5,6 +5,7 @@ import { Star } from 'lucide-react'
 import { getMovieDetails, imageUrl } from '@/services/tmdb'
 import { releaseYear } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { WatchlistButton } from './WatchlistButton'
 import type { Movie } from '@/types/movie'
 
 export function MovieCard({
@@ -38,35 +39,38 @@ export function MovieCard({
   }
 
   return (
-    <Link
-      to={`/movie/${movie.id}`}
-      viewTransition
-      onClick={nameForTransition}
-      onPointerEnter={prefetch}
-      onFocus={prefetch}
-      className={cn('group block', className)}
-    >
-      <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-focus-visible:-translate-y-1.5'>
-        {poster ? (
-          <img
-            src={poster}
-            alt=''
-            loading='lazy'
-            className='size-full object-cover'
-          />
-        ) : (
-          <div className='flex size-full items-center justify-center p-2 text-center text-xs text-muted'>
-            {movie.title}
-          </div>
-        )}
-        <span className='absolute left-2 top-2 flex items-center gap-1 rounded-full bg-bg/80 px-2 py-1 text-xs font-semibold backdrop-blur'>
-          <Star className='size-3 fill-brand text-brand' aria-hidden />
-          <span className='sr-only'>Rated</span>
-          {movie.vote_average.toFixed(1)}
-        </span>
-      </div>
-      <h3 className='mt-2.5 truncate text-sm font-semibold'>{movie.title}</h3>
-      {year && <p className='text-xs text-muted'>{year}</p>}
-    </Link>
+    <div className={cn('group relative', className)}>
+      <Link
+        to={`/movie/${movie.id}`}
+        viewTransition
+        onClick={nameForTransition}
+        onPointerEnter={prefetch}
+        onFocus={prefetch}
+        className='block'
+      >
+        <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-focus-visible:-translate-y-1.5'>
+          {poster ? (
+            <img
+              src={poster}
+              alt=''
+              loading='lazy'
+              className='size-full object-cover'
+            />
+          ) : (
+            <div className='flex size-full items-center justify-center p-2 text-center text-xs text-muted'>
+              {movie.title}
+            </div>
+          )}
+          <span className='absolute left-2 top-2 flex items-center gap-1 rounded-full bg-bg/80 px-2 py-1 text-xs font-semibold backdrop-blur'>
+            <Star className='size-3 fill-brand text-brand' aria-hidden />
+            <span className='sr-only'>Rated</span>
+            {movie.vote_average.toFixed(1)}
+          </span>
+        </div>
+        <h3 className='mt-2.5 truncate text-sm font-semibold'>{movie.title}</h3>
+        {year && <p className='text-xs text-muted'>{year}</p>}
+      </Link>
+      <WatchlistButton movie={movie} className='absolute right-1 top-1' />
+    </div>
   )
 }
