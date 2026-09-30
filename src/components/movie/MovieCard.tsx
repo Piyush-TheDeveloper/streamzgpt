@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Star } from 'lucide-react'
 import { imageUrl } from '@/services/tmdb'
 import type { Movie } from '@/types/movie'
@@ -5,7 +6,10 @@ import type { Movie } from '@/types/movie'
 export function MovieCard({ movie }: { movie: Movie }) {
   const poster = imageUrl(movie.poster_path, 'w342')
   return (
-    <article className='group w-36 shrink-0 sm:w-44'>
+    <Link
+      to={`/movie/${movie.id}`}
+      className='group block w-36 shrink-0 rounded-lg sm:w-44'
+    >
       <div className='relative aspect-2/3 overflow-hidden rounded-lg bg-surface-2 ring-1 ring-border transition group-hover:scale-105 group-hover:ring-brand'>
         {poster ? (
           <img
@@ -26,6 +30,6 @@ export function MovieCard({ movie }: { movie: Movie }) {
         {movie.vote_average.toFixed(1)}
         {movie.release_date && ` · ${movie.release_date.slice(0, 4)}`}
       </p>
-    </article>
+    </Link>
   )
 }
