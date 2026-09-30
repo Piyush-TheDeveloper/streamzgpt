@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Info, Star } from 'lucide-react'
+import { BlurBackdrop } from './BlurBackdrop'
 import { TrailerButton } from '@/components/movie/TrailerButton'
 import { heroButtons } from '@/components/movie/buttonStyles'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useAmbientFromImage } from '@/hooks/useAmbientFromImage'
 import { prefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { releaseYear } from '@/lib/format'
@@ -31,6 +33,12 @@ export function Spotlight({ feed }: { feed: Feed }) {
   const current = movies[active]
 
   useAmbientFromImage(imageUrl(current?.poster_path ?? null, 'w92'))
+  // Landscape art when TMDB has it, otherwise the poster; it's blurred anyway.
+  const rawBackdrop =
+    imageUrl(current?.backdrop_path ?? null, 'w780') ??
+    imageUrl(current?.poster_path ?? null, 'w500')
+  // Flinging the reel passes many posters; only fetch art for the one it lands on.
+  const backdropSrc = useDebouncedValue(rawBackdrop, 150)
 
   // Whichever poster crosses the centre line of the reel becomes active.
   const reelRef = useRef<HTMLUListElement>(null)
@@ -113,8 +121,9 @@ export function Spotlight({ feed }: { feed: Feed }) {
     <section
       aria-roledescription='carousel'
       aria-label='Now playing spotlight'
-      className='relative'
+      className='relative isolate'
     >
+      <BlurBackdrop src={backdropSrc} />
       <h1 className='sr-only'>StreamzGPT — now playing</h1>
       <div className='relative'>
         <ul

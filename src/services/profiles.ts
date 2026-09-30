@@ -1,5 +1,6 @@
 import { ID, Permission, Role, type Models, Query } from 'appwrite'
 import { DATABASE_ID, PROFILES_TABLE, tables } from '@/lib/appwrite'
+import { clearWatchlist } from '@/services/watchlist'
 import type { Profile, ProfileInput } from '@/types/profile'
 
 type Row = Models.Row & {
@@ -61,6 +62,8 @@ export async function updateProfile(id: string, input: ProfileInput) {
 }
 
 export async function deleteProfile(id: string) {
+  // Best effort: a failure here must not block deleting the profile itself.
+  await clearWatchlist(id).catch(() => {})
   await tables.deleteRow({
     databaseId: DATABASE_ID,
     tableId: PROFILES_TABLE,

@@ -86,6 +86,24 @@
   }
 }
 
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.fade-in {
+  animation: fade-in 0.8s ease-out both;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;

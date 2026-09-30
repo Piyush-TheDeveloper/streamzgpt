@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Clock, Star } from 'lucide-react'
 import { TrailerButton } from '@/components/movie/TrailerButton'
+import { WatchlistButton } from '@/components/movie/WatchlistButton'
 import { MovieCard } from '@/components/movie/MovieCard'
 import { heroButtons } from '@/components/movie/buttonStyles'
 import { formatRuntime, releaseYear } from '@/lib/format'
@@ -130,11 +131,14 @@ export function MovieDetailPage() {
               ))}
             </ul>
             <p className='max-w-2xl leading-relaxed text-fg/90'>{m.overview}</p>
-            <TrailerButton
-              movieId={m.id}
-              title={m.title}
-              className={`${heroButtons} bg-brand text-on-brand hover:bg-brand-hover`}
-            />
+            <div className='flex flex-wrap gap-3'>
+              <TrailerButton
+                movieId={m.id}
+                title={m.title}
+                className={`${heroButtons} bg-brand text-on-brand hover:bg-brand-hover`}
+              />
+              <WatchlistButton movie={m} variant='full' />
+            </div>
           </div>
         </div>
       </div>

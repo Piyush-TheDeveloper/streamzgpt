@@ -1,11 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import {
-  Link,
-  Navigate,
-  useLocation,
-  useNavigate,
-  useParams,
-} from 'react-router'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import { Field } from '@/components/auth/Field'
 import { Avatar } from '@/components/profile/Avatar'
 import {
@@ -61,6 +55,12 @@ function ProfileForm({ existing }: { existing?: Profile }) {
 
   if (atLimit) return <Navigate to='/profiles' replace />
 
+  // Return to wherever the user came from (menu, home or manage screen).
+  function goBack() {
+    if (location.key !== 'default') navigate(-1)
+    else navigate(active ? '/' : '/profiles', { replace: true })
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     const error = validateProfileName(name)
@@ -77,9 +77,7 @@ function ProfileForm({ existing }: { existing?: Profile }) {
     try {
       if (existing) {
         await update.mutateAsync(input)
-        // Return to wherever the user came from (menu or manage screen).
-        if (location.key !== 'default') navigate(-1)
-        else navigate(active ? '/' : '/profiles', { replace: true })
+        goBack()
       } else {
         const created = await create.mutateAsync(input)
         setActive(created.id)
@@ -220,12 +218,13 @@ function ProfileForm({ existing }: { existing?: Profile }) {
             {busy ? 'Saving…' : existing ? 'Save changes' : 'Create profile'}
           </button>
           {!isFirst && (
-            <Link
-              to='/profiles'
+            <button
+              type='button'
+              onClick={goBack}
               className='rounded-full border border-border px-6 py-3 text-sm font-medium hover:border-fg'
             >
               Cancel
-            </Link>
+            </button>
           )}
           {canDelete &&
             (confirmDelete ? (

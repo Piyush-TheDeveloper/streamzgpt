@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { AmbientProvider } from '@/features/ambient/AmbientProvider'
 import { Header } from './Header'
+import { WatchlistNotice } from './WatchlistNotice'
 
 export function AppLayout() {
   const { pathname } = useLocation()
@@ -26,6 +27,7 @@ export function AppLayout() {
         Skip to content
       </a>
       <ScrollRestoration />
+      <WatchlistNotice />
       <div className='flex min-h-dvh flex-col'>
         <Header />
         <main
