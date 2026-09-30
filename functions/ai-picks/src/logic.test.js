@@ -318,7 +318,13 @@ describe('askGroq', () => {
 
   it('retries once without JSON mode when a model rejects it (400)', async () => {
     const f = vi.fn(async (_u, init) =>
-      JSON.parse(init.body).response_format ? fail(400) : reply('ok'),
+      JSON.parse(init.body).response_format
+        ? {
+            ok: false,
+            status: 400,
+            text: async () => 'response_format json_object is not supported',
+          }
+        : reply('ok'),
     )
     const out = await askGroq({
       ...base,
@@ -340,16 +346,26 @@ describe('askGroq', () => {
     expect(qwen.reasoning_effort).toBeUndefined()
   })
 
-  it('stops on rate limits and bad keys instead of trying other models', async () => {
-    const limited = vi.fn(async () => fail(429))
+  it('tries other models after a 429 (quotas are per model); limited only if all are', async () => {
+    const f = vi.fn(async (_u, i) =>
+      JSON.parse(i.body).model === 'a' ? fail(429) : reply('ok'),
+    )
+    expect(
+      (await askGroq({ ...base, models: ['a', 'b'], fetchImpl: f })).model,
+    ).toBe('b')
+    const allLimited = vi.fn(async () => fail(429))
     await expect(
-      askGroq({ ...base, models: ['a', 'b'], fetchImpl: limited }),
+      askGroq({ ...base, models: ['a', 'b'], fetchImpl: allLimited }),
     ).rejects.toMatchObject({ code: 'rate_limited' })
-    expect(limited).toHaveBeenCalledTimes(1)
+    expect(allLimited).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops immediately on a bad key', async () => {
     const bad = vi.fn(async () => fail(401))
     await expect(
       askGroq({ ...base, models: ['a', 'b'], fetchImpl: bad }),
     ).rejects.toMatchObject({ code: 'auth' })
+    expect(bad).toHaveBeenCalledTimes(1)
   })
 
   it('fails with an upstream error when every model is unavailable', async () => {
@@ -380,5 +396,51 @@ describe('askGroq', () => {
     expect(groqModels('openai/gpt-oss-120b')).toHaveLength(
       new Set(groqModels('openai/gpt-oss-120b')).size,
     )
+  })
+
+  it('does not retry an unrelated 400 (it would fail again)', async () => {
+    const f = vi.fn(async () => ({
+      ok: false,
+      status: 400,
+      text: async () => 'invalid reasoning_effort',
+    }))
+    await expect(
+      askGroq({ ...base, models: ['a'], fetchImpl: f }),
+    ).rejects.toBeInstanceOf(GroqError)
+    expect(f).toHaveBeenCalledTimes(1)
+  })
+
+  it('moves on when a model returns an empty completion', async () => {
+    const f = vi.fn(async (_u, i) =>
+      JSON.parse(i.body).model === 'a' ? reply('   ') : reply('{"picks":[]}'),
+    )
+    expect(
+      (await askGroq({ ...base, models: ['a', 'b'], fetchImpl: f })).model,
+    ).toBe('b')
+  })
+
+  it('moves on when reading the body fails', async () => {
+    const f = vi.fn(async (_u, i) =>
+      JSON.parse(i.body).model === 'a'
+        ? {
+            ok: true,
+            status: 200,
+            json: async () => {
+              throw new SyntaxError('bad json')
+            },
+          }
+        : reply('ok'),
+    )
+    expect(
+      (await askGroq({ ...base, models: ['a', 'b'], fetchImpl: f })).model,
+    ).toBe('b')
+  })
+})
+
+describe('parsePicks with reasoning output', () => {
+  it('ignores <think> blocks that contain braces', () => {
+    const text =
+      '<think>maybe {"picks": nope} hmm</think>{"picks":[{"title":"Up","year":2009,"reason":"x"}]}'
+    expect(parsePicks(text).map(p => p.title)).toEqual(['Up'])
   })
 })

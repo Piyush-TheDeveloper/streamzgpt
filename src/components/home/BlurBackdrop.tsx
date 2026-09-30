@@ -16,7 +16,7 @@ function BackdropImage({ src }: { src: string }) {
       decoding='async'
       onLoad={() => setLoaded(true)}
       className={cn(
-        'absolute inset-0 size-full scale-105 object-cover blur-[3px] saturate-150 transition-opacity duration-700 will-change-[opacity]',
+        'absolute inset-0 size-full scale-110 object-cover blur-[3px] saturate-150 transition-opacity duration-700 will-change-[opacity]',
         loaded ? 'opacity-80' : 'opacity-0',
       )}
     />
@@ -24,9 +24,10 @@ function BackdropImage({ src }: { src: string }) {
 }
 
 /**
- * Lightly blurred, dimmed copy of the focused film's artwork that crossfades
- * whenever `src` changes. Only opacity animates; the blur is baked into each
- * layer, so it stays cheap. Decorative (aria-hidden).
+ * Barely-blurred, dimmed copy of the focused film's artwork that crossfades
+ * whenever `src` changes. Only opacity animates; the 3px blur is baked into each
+ * layer (scaled up a little so its soft edge stays off-screen), so it stays
+ * cheap. Decorative (aria-hidden).
  */
 export function BlurBackdrop({ src }: { src: string | null }) {
   const [layers, setLayers] = useState<Layer[]>([])

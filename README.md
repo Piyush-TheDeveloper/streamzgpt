@@ -77,7 +77,7 @@ Execute permission is limited to signed-in users, and the function has the
 `rows.read` scope so it can read the caller's own profile row: the kids
 restriction (only titles rated G/PG in the US or "U" in India, checked per title) is
 decided **server-side from that profile**, not from anything the browser sends.
-The function timeout is set to 30 s (Groq 15 s + TMDB lookups).
+The function timeout is set to 45 s: Groq gets a 20 s budget across its fallback models, leaving time for the TMDB lookups.
 
 ## TMDB proxy (Appwrite Function)
 

@@ -61,9 +61,10 @@ export function Spotlight({ feed }: { feed: Feed }) {
   const year = current ? releaseYear(current.release_date) : null
 
   useAmbientFromImage(imageUrl(current?.poster_path ?? null, 'w92'))
-  // Landscape art when TMDB has it, otherwise the poster; it's blurred anyway.
+  // Landscape art when TMDB has it, otherwise the poster. It's only lightly
+  // blurred now, so use a size that holds up when stretched across the hero.
   const rawBackdrop =
-    imageUrl(current?.backdrop_path ?? null, 'w780') ??
+    imageUrl(current?.backdrop_path ?? null, 'w1280') ??
     imageUrl(current?.poster_path ?? null, 'w500')
   // Flinging the reel passes many posters; only fetch art for the one it lands on.
   const backdropSrc = useDebouncedValue(rawBackdrop, 150)
@@ -351,17 +352,21 @@ export function Spotlight({ feed }: { feed: Feed }) {
         key={current.id}
         className='rise-in mx-auto max-w-2xl px-4 text-center'
       >
-        <h2 className='text-3xl font-extrabold sm:text-5xl'>
-          {current.title}
-          {year && (
-            <span className='ml-2 font-normal text-muted'>({year})</span>
-          )}
-          <sup className='ml-1.5 inline-flex items-center gap-1 align-super text-base font-semibold leading-none text-fg sm:text-lg'>
+        {/* The rating sits beside the heading (not inside it) so the heading's
+            accessible name stays just "Title (Year)". */}
+        <div className='text-3xl font-extrabold sm:text-5xl'>
+          <h2 className='inline'>
+            {current.title}
+            {year && (
+              <span className='ml-2 font-normal text-muted'>({year})</span>
+            )}
+          </h2>
+          <span className='ml-1.5 inline-flex items-center gap-1 align-super text-base font-semibold leading-none text-fg sm:text-lg'>
             <Star className='size-4 fill-brand text-brand' aria-hidden />
             <span className='sr-only'>Rated</span>
             {current.vote_average.toFixed(1)}
-          </sup>
-        </h2>
+          </span>
+        </div>
         <div className='mt-5 flex flex-wrap items-center justify-center gap-3'>
           <TrailerButton
             movieId={current.id}

@@ -55,7 +55,9 @@ export function buildMessages(input) {
 }
 
 /** Parses the model output defensively into [{title, year, reason}]. */
-export function parsePicks(text) {
+export function parsePicks(rawText) {
+  // Some reasoning models prepend <think>…</think>; its braces would confuse us.
+  const text = String(rawText ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '')
   let data
   try {
     data = JSON.parse(text)
@@ -266,19 +268,19 @@ export async function askGroq({
   models,
   fetchImpl = fetch,
   log = () => {},
-  budgetMs = 22000,
+  budgetMs = 20000,
   now = Date.now,
 }) {
   const deadline = now() + budgetMs
   const call = async (model, jsonMode) => {
-    const timeout = Math.min(12000, deadline - now())
+    const timeout = Math.min(10000, deadline - now())
     if (timeout < 1500) throw new GroqError('upstream', 'out of time')
     const body = {
       model,
       messages,
       temperature: 0.8,
-      // gpt-oss "thinks" first and those tokens count against the limit.
-      max_tokens: 2500,
+      // Reasoning models "think" first, and those tokens count against this.
+      max_tokens: 3000,
       ...(model.startsWith('openai/gpt-oss')
         ? { reasoning_effort: 'low' }
         : {}),
@@ -293,31 +295,56 @@ export async function askGroq({
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeout),
     })
-    if (res.ok) return { ok: true, res }
-    const text = await res.text?.().catch(() => '')
-    log(`Groq ${model} -> ${res.status} ${String(text).slice(0, 200)}`)
-    return { ok: false, status: res.status }
+    if (res.ok) {
+      const data = await res.json()
+      const choice = data.choices?.[0]
+      return {
+        ok: true,
+        content: choice?.message?.content ?? '',
+        finish: choice?.finish_reason,
+      }
+    }
+    const text = String((await res.text?.().catch(() => '')) ?? '').slice(
+      0,
+      200,
+    )
+    log(`Groq ${model} -> ${res.status} ${text}`)
+    return { ok: false, status: res.status, text }
   }
 
+  let rateLimited = false
   for (const model of models) {
     let out
     try {
       out = await call(model, true)
-      // Some models reject JSON mode: retry once without it (parsePicks copes).
-      if (!out.ok && out.status === 400) out = await call(model, false)
+      // Only a 400 that complains about JSON mode is worth a retry without it;
+      // any other 400 would just fail again and burn the time budget.
+      if (
+        !out.ok &&
+        out.status === 400 &&
+        /json|response_format/i.test(out.text)
+      ) {
+        out = await call(model, false)
+      }
     } catch (e) {
       if (e instanceof GroqError) throw e
       log(`Groq ${model} request failed: ${e.message}`)
       continue
     }
     if (out.ok) {
-      const data = await out.res.json()
-      return { content: data.choices?.[0]?.message?.content ?? '', model }
+      if (out.content.trim()) return { content: out.content, model }
+      // e.g. a reasoning model spent its whole token budget thinking.
+      log(`Groq ${model} returned no content (finish_reason=${out.finish})`)
+      continue
     }
-    if (out.status === 429) throw new GroqError('rate_limited')
-    if (out.status === 401 || out.status === 403)
+    // Quotas are per model, so another model may still have capacity.
+    if (out.status === 429) rateLimited = true
+    else if (out.status === 401 || out.status === 403) {
       throw new GroqError('auth', 'Groq rejected the API key')
+    }
     // 400/404/5xx: this model is unavailable right now; try the next one.
   }
-  throw new GroqError('upstream', 'no Groq model responded')
+  throw rateLimited
+    ? new GroqError('rate_limited')
+    : new GroqError('upstream', 'no Groq model responded')
 }
