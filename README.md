@@ -1,39 +1,37 @@
-# streamzgpt
+# StreamzGPT
 
-Streaming Application with Integration of powerful ChatGPT API
+A streaming-style movie discovery app with AI-powered suggestions.
 
-# Features:
+**Stack:** Vite · React 19 · TypeScript · Tailwind 4 · React Router · TanStack
+Query · (planned) Appwrite + Groq.
 
-- Make Clone of Netflix
-- Create Login Page (Add Authentication)
-- Create Browse Page (Add Authentication)
-  - Use Movie Trailor on front Page
-  - Add Play and Description of Movie
-  - MovieLists
-  - and Many More...
-- Use ChatGPT API and Make StreamzGPT Page
-  - Make Search Bar
-  - Get Movie Suggestions out of ChatGPT API
+## Getting started
 
-# Implemented Till Now
-- Created React App (CRA)
-- Confugured Tailwind CSS
-- Made Header Component
-- Added Routing in App
-- Created Login and Sign Up Form
-- Form Validation
-- Used `useRef` hook
-- Firebase Setup
-- Deploying our project to Firebase.
-- Implemented SignUp/SignIn user Logic
-- Created Redux store with userSilce
-- Implemented Signout feature
-- Update Profile API call
-- Implemented Redirect of pages using useNavigate hook
-- Bug Fixes:
-  i. Sign Up user displayName and photoURL update 
-  ii. Restricted user to not redirect to browse when not logged in and vice versa.
-- Unsubscribe to onAuthStateChanged callback
-- Registered TMDB API & got API Key and access token
-- Create Movies Slice and store the API Data in our Redux Store
-- Created custom hook 'useNowPlayingMovies'
+```bash
+cp .env.example .env.local   # add your TMDB read-access token
+npm install
+npm run dev
+```
+
+Scripts: `dev`, `build`, `preview`, `lint`, `typecheck`, `test`, `format`.
+
+## Structure
+
+```
+src/
+  components/{layout,movie}   UI building blocks
+  pages/                      route components
+  services/                   API clients (TMDB)
+  lib/                        env, query client, utils
+  types/                      shared types
+```
+
+## Roadmap
+
+1. Foundation (this PR)
+2. Appwrite auth
+3. Browse redesign: hero, detail pages, trailers
+4. Search and discovery
+5. Watchlist / favourites
+6. AI suggestions (Groq via Appwrite Function)
+7. Tests, a11y, CI/deploy
