@@ -69,6 +69,8 @@ export function discoverPath({
   if (g) params.set('with_genres', g)
   if (kids) {
     params.set('certification_country', 'US')
+    // US scale is NR < G < PG: bounding both ends excludes unrated titles.
+    params.set('certification.gte', 'G')
     params.set('certification.lte', 'PG')
   }
   return `/discover/movie?${params}`
@@ -81,9 +83,19 @@ export const discoverMovies = (
 
 export const getMovieDetails = (id: number, signal?: AbortSignal) =>
   request<MovieDetails>(
-    `/movie/${id}?append_to_response=videos,credits`,
+    `/movie/${id}?append_to_response=videos,credits,release_dates`,
     signal,
   )
+
+const KID_SAFE = new Set(['G', 'PG', 'TV-Y', 'TV-Y7', 'TV-G'])
+
+/** The US theatrical/home certification, or '' when TMDB has none. */
+export function usCertification(details: MovieDetails): string {
+  const us = details.release_dates?.results.find(r => r.iso_3166_1 === 'US')
+  return us?.release_dates.find(d => d.certification)?.certification ?? ''
+}
+
+export const isKidSafe = (certification: string) => KID_SAFE.has(certification)
 
 export const getRecommendedMovies = (id: number, signal?: AbortSignal) =>
   request<Paginated<Movie>>(`/movie/${id}/recommendations?page=1`, signal)

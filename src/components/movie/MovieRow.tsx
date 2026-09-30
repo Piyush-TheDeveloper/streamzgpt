@@ -8,6 +8,9 @@ export function MovieRow({ feed, title }: { feed: Feed; title: string }) {
     queryFn: ({ signal }) => feed.fetch(signal),
   })
 
+  // A filtered row (e.g. a kids profile's favourite genres) may have no titles.
+  if (data && data.results.length === 0) return null
+
   return (
     <section aria-label={title} className='space-y-3'>
       <h2 className='text-2xl font-extrabold'>{title}</h2>

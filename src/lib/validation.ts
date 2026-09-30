@@ -12,6 +12,6 @@ export const validateName = (name: string) =>
 export const validateProfileName = (name: string) => {
   const n = name.trim()
   if (n.length < 1) return 'Give this profile a name.'
-  if (n.length > 24) return 'Keep it under 24 characters.'
+  if (n.length > 24) return 'Use 24 characters or fewer.'
   return null
 }

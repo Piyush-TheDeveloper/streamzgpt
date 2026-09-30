@@ -20,6 +20,7 @@ export function ProfileMenu() {
   const [signOutFailed, setSignOutFailed] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const panelId = useId()
 
   // Close on outside pointer / Escape (returning focus to the trigger).
@@ -28,6 +29,8 @@ export function ProfileMenu() {
     const onPointer = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
     }
+    // Move focus into the panel so keyboard users land on its first action.
+    panelRef.current?.querySelector<HTMLElement>('button, a')?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setOpen(false)
@@ -59,14 +62,24 @@ export function ProfileMenu() {
   }
 
   return (
-    <div ref={rootRef} className='relative'>
+    <div
+      ref={rootRef}
+      className='relative'
+      onBlur={e => {
+        // Tabbing out of the menu closes it.
+        if (open && !e.currentTarget.contains(e.relatedTarget)) setOpen(false)
+      }}
+    >
       <button
         ref={buttonRef}
         type='button'
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         aria-label={`Account menu, ${active.name}`}
-        onClick={() => setOpen(o => !o)}
+        onClick={() => {
+          setSignOutFailed(false)
+          setOpen(o => !o)
+        }}
         className={cn(
           'grid size-11 place-items-center rounded-full ring-offset-2 ring-offset-bg transition',
           open ? 'ring-2 ring-fg' : 'hover:ring-2 hover:ring-fg/60',
@@ -81,52 +94,78 @@ export function ProfileMenu() {
 
       {open && (
         <div
+          ref={panelRef}
           id={panelId}
           className='absolute right-0 top-14 w-72 rounded-3xl border border-border bg-surface/95 p-2 shadow-2xl shadow-black/60 backdrop-blur-xl'
         >
-          <p className='px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-muted'>
-            Switch profile
-          </p>
-          <ul>
-            {profiles.map(p => (
-              <li key={p.id}>
-                <button
-                  type='button'
-                  aria-current={p.id === active.id}
-                  onClick={() => {
-                    setActive(p.id)
-                    setOpen(false)
-                  }}
-                  className={item}
-                >
-                  <Avatar
-                    avatar={p.avatar}
-                    name={p.name}
-                    className='size-8 text-sm'
-                  />
-                  <span className='flex-1 truncate font-medium'>{p.name}</span>
-                  {p.id === active.id && (
-                    <span className='text-xs text-brand'>
-                      <span className='sr-only'>Current profile, </span>Active
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className='my-2 h-px bg-border' />
-          <Link
-            to={`/profiles/${active.id}/edit`}
-            onClick={() => setOpen(false)}
-            className={item}
-          >
-            <Settings className='size-4' aria-hidden />
-            Preferences for {active.name}
-          </Link>
-          <Link to='/profiles' onClick={() => setOpen(false)} className={item}>
-            <Users className='size-4' aria-hidden />
-            Manage profiles
-          </Link>
+          {active.kids ? (
+            <div className='flex items-center gap-3 px-3 py-2'>
+              <Avatar
+                avatar={active.avatar}
+                name={active.name}
+                className='size-8 text-sm'
+              />
+              <div>
+                <p className='text-sm font-medium'>{active.name}</p>
+                <p className='text-xs text-muted'>
+                  Kids profile. Sign out to switch profiles.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className='px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-muted'>
+                Switch profile
+              </p>
+              <ul>
+                {profiles.map(p => (
+                  <li key={p.id}>
+                    <button
+                      type='button'
+                      aria-current={p.id === active.id}
+                      onClick={() => {
+                        setActive(p.id)
+                        setOpen(false)
+                      }}
+                      className={item}
+                    >
+                      <Avatar
+                        avatar={p.avatar}
+                        name={p.name}
+                        className='size-8 text-sm'
+                      />
+                      <span className='flex-1 truncate font-medium'>
+                        {p.name}
+                      </span>
+                      {p.id === active.id && (
+                        <span className='text-xs text-brand'>
+                          <span className='sr-only'>Current profile, </span>
+                          Active
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className='my-2 h-px bg-border' />
+              <Link
+                to={`/profiles/${active.id}/edit`}
+                onClick={() => setOpen(false)}
+                className={item}
+              >
+                <Settings className='size-4' aria-hidden />
+                Preferences for {active.name}
+              </Link>
+              <Link
+                to='/profiles'
+                onClick={() => setOpen(false)}
+                className={item}
+              >
+                <Users className='size-4' aria-hidden />
+                Manage profiles
+              </Link>
+            </>
+          )}
           <div className='my-2 h-px bg-border' />
           <p className='truncate px-3 pb-1 text-xs text-muted'>{user.email}</p>
           <button type='button' onClick={onSignOut} className={item}>

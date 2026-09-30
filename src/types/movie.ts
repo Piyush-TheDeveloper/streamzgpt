@@ -44,4 +44,10 @@ export interface MovieDetails extends Movie {
   genres: Genre[]
   videos: { results: Video[] }
   credits: { cast: CastMember[] }
+  release_dates?: {
+    results: {
+      iso_3166_1: string
+      release_dates: { certification: string }[]
+    }[]
+  }
 }

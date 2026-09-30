@@ -22,15 +22,15 @@ import { MAX_PROFILES, type Profile } from '@/types/profile'
 
 export function ProfileFormPage() {
   const { id } = useParams()
-  const { profiles, status } = useProfile()
+  const { profiles, active, status } = useProfile()
   const existing = id ? profiles.find(p => p.id === id) : undefined
 
   if (status === 'loading') return null
+  if (active?.kids) return <Navigate to='/' replace />
+  // Never treat a failed load as "no profiles": send them to the retry screen.
+  if (status === 'error') return <Navigate to='/profiles' replace />
   if (id && !existing) return <Navigate to='/profiles' replace />
-  if (!id && profiles.length >= MAX_PROFILES) {
-    return <Navigate to='/profiles' replace />
-  }
-  return <ProfileForm existing={existing} />
+  return <ProfileForm key={existing?.id ?? 'new'} existing={existing} />
 }
 
 function ProfileForm({ existing }: { existing?: Profile }) {
@@ -54,7 +54,12 @@ function ProfileForm({ existing }: { existing?: Profile }) {
 
   const busy = create.isPending || update.isPending || remove.isPending
   const isFirst = profiles.length === 0
+  // Decided once at mount: creating the 5th profile refetches the list, and the
+  // limit must not then bounce the user away mid-submit.
+  const [atLimit] = useState(() => !existing && profiles.length >= MAX_PROFILES)
   const canDelete = Boolean(existing) && profiles.length > 1
+
+  if (atLimit) return <Navigate to='/profiles' replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()

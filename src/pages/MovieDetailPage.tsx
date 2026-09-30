@@ -5,14 +5,18 @@ import { TrailerButton } from '@/components/movie/TrailerButton'
 import { MovieCard } from '@/components/movie/MovieCard'
 import { heroButtons } from '@/components/movie/buttonStyles'
 import { formatRuntime, releaseYear } from '@/lib/format'
+import { useProfile } from '@/features/profiles/ProfileContext'
 import {
   getMovieDetails,
   getRecommendedMovies,
   imageUrl,
+  isKidSafe,
   TmdbError,
+  usCertification,
 } from '@/services/tmdb'
 
 export function MovieDetailPage() {
+  const { active } = useProfile()
   const id = Number(useParams().id)
   const valid = Number.isInteger(id) && id > 0
 
@@ -59,6 +63,17 @@ export function MovieDetailPage() {
   }
 
   const m = details.data
+  if (active?.kids && !isKidSafe(usCertification(m))) {
+    return (
+      <div className='mx-auto max-w-7xl px-4 py-24 text-center sm:px-6'>
+        <h1 className='text-2xl font-bold'>Not available on this profile</h1>
+        <p className='mt-2 text-muted'>This title isn’t rated for kids.</p>
+        <Link to='/' className='mt-4 block text-brand hover:underline'>
+          Back home
+        </Link>
+      </div>
+    )
+  }
   const poster = imageUrl(m.poster_path, 'w500')
   const runtime = formatRuntime(m.runtime)
   const year = releaseYear(m.release_date)
@@ -148,7 +163,7 @@ export function MovieDetailPage() {
             </ul>
           </section>
         )}
-        {similar.data && similar.data.results.length > 0 && (
+        {!active?.kids && similar.data && similar.data.results.length > 0 && (
           <section aria-label='More like this' className='space-y-3'>
             <h2 className='text-lg font-semibold'>More like this</h2>
             <div className='scrollbar-none -mx-4 flex gap-4 overflow-x-auto px-4 py-4 sm:-mx-6 sm:px-6'>

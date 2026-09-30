@@ -21,8 +21,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [chosen, setChosen] = useState<{ userId?: string; id: string | null }>(
     () => ({ userId, id: readStored(userId) }),
   )
-  // The remembered choice belongs to a user; ignore it if the user changed.
-  const activeId = chosen.userId === userId ? chosen.id : readStored(userId)
+  // The remembered choice belongs to one user: reload it only when that changes.
+  if (chosen.userId !== userId) {
+    setChosen({ userId, id: readStored(userId) })
+  }
+  const activeId = chosen.userId === userId ? chosen.id : null
 
   const query = useQuery({
     queryKey: ['profiles', userId],
@@ -51,11 +54,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     () => ({
       profiles,
       active: profiles.find(p => p.id === activeId) ?? null,
-      status: query.isError
-        ? ('error' as const)
-        : query.isPending && userId
-          ? ('loading' as const)
-          : ('ready' as const),
+      // A failed background refetch must not hide profiles we already have.
+      status:
+        query.isError && !query.data
+          ? ('error' as const)
+          : query.isPending && userId
+            ? ('loading' as const)
+            : ('ready' as const),
       setActive,
       refetch: () => void refetch(),
     }),
@@ -63,6 +68,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       profiles,
       activeId,
       query.isError,
+      query.data,
       query.isPending,
       userId,
       setActive,

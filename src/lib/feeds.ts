@@ -44,8 +44,12 @@ export function homeFeeds(profile: Profile): HomeFeeds {
       rows: [
         ...picked,
         {
-          title: 'Popular with kids',
-          feed: discover({ kids: true, sort: 'popularity.desc' }),
+          title: 'Fresh family picks',
+          feed: discover({
+            kids: true,
+            sort: 'primary_release_date.desc',
+            minVotes: 100,
+          }),
         },
         {
           title: 'All-time favourites',

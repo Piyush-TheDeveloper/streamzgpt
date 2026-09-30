@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { Pencil, Plus } from 'lucide-react'
 import { Avatar } from '@/components/profile/Avatar'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { MAX_PROFILES, type Profile } from '@/types/profile'
 
 export function ProfilesPage() {
-  const { profiles, status, setActive, refetch } = useProfile()
+  const { profiles, active, status, setActive, refetch } = useProfile()
   const navigate = useNavigate()
   const location = useLocation()
   const [managing, setManaging] = useState(false)
@@ -18,6 +18,9 @@ export function ProfilesPage() {
       replace: true,
     })
   }
+
+  // Kids profiles can't leave or edit profiles; signing out is the way out.
+  if (active?.kids) return <Navigate to='/' replace />
 
   const tile = 'group flex w-32 flex-col items-center gap-3 sm:w-40'
   const avatarClass =

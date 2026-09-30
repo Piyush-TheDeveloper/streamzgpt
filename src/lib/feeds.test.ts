@@ -33,5 +33,9 @@ describe('homeFeeds', () => {
     const f = homeFeeds({ ...base, kids: true })
     expect(f.spotlight.key[0]).toBe('discover')
     expect(f.rows.every(r => r.feed.key[0] === 'discover')).toBe(true)
+    const keys = [f.spotlight, ...f.rows.map(r => r.feed)].map(x =>
+      JSON.stringify(x.key),
+    )
+    expect(new Set(keys).size).toBe(keys.length)
   })
 })
