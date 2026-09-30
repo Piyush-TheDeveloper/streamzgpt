@@ -16,17 +16,17 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <RequireAuth />,
+    element: <AppLayout />,
     children: [
       {
-        element: <AppLayout />,
+        element: <RequireAuth />,
         children: [
           { index: true, element: <HomePage /> },
           { path: 'search', element: <ComingSoonPage title='Search' /> },
           { path: 'ai', element: <ComingSoonPage title='AI Picks' /> },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
 ])

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
@@ -15,9 +16,15 @@ export function Header() {
   const { user, setUser } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [signOutFailed, setSignOutFailed] = useState(false)
 
   async function onSignOut() {
-    await signOut().catch(() => {})
+    try {
+      await signOut()
+    } catch {
+      setSignOutFailed(true)
+      return
+    }
     setUser(null)
     queryClient.clear()
     navigate('/login', { replace: true })
@@ -52,6 +59,11 @@ export function Header() {
             <span className='hidden text-muted sm:inline'>
               {user.name || user.email}
             </span>
+            {signOutFailed && (
+              <span role='alert' className='text-xs text-brand'>
+                Couldn’t sign out. Try again.
+              </span>
+            )}
             <button
               type='button'
               onClick={onSignOut}

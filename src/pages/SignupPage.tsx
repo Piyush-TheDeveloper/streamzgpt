@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { Field } from '@/components/auth/Field'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
@@ -9,7 +9,6 @@ import { validateEmail, validateName, validatePassword } from '@/lib/validation'
 
 export function SignupPage() {
   const { setUser } = useAuth()
-  const navigate = useNavigate()
   const [errors, setErrors] = useState<{
     name?: string | null
     email?: string | null
@@ -35,7 +34,6 @@ export function SignupPage() {
     setFormError(null)
     try {
       setUser(await signUp(name, email, password))
-      navigate('/', { replace: true })
     } catch (err) {
       setFormError(authErrorMessage(err))
     } finally {

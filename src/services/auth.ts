@@ -26,7 +26,11 @@ export async function signIn(email: string, password: string) {
 
 export async function signUp(name: string, email: string, password: string) {
   await account.create({ userId: ID.unique(), email, password, name })
-  return signIn(email, password)
+  try {
+    return await signIn(email, password)
+  } catch {
+    throw new AccountCreatedError()
+  }
 }
 
 export function signInWithOAuth(provider: OAuthName) {
@@ -42,7 +46,14 @@ export async function signOut() {
   await account.deleteSession({ sessionId: 'current' })
 }
 
+export class AccountCreatedError extends Error {
+  constructor() {
+    super('Account created, but sign-in failed. Please sign in.')
+  }
+}
+
 export function authErrorMessage(e: unknown) {
+  if (e instanceof AccountCreatedError) return e.message
   if (e instanceof AppwriteException) {
     if (e.code === 401) return 'Incorrect email or password.'
     if (e.code === 409) return 'An account with this email already exists.'

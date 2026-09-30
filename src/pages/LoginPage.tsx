@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { Field } from '@/components/auth/Field'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
@@ -9,8 +9,6 @@ import { validateEmail, validatePassword } from '@/lib/validation'
 
 export function LoginPage() {
   const { setUser } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
   const [params] = useSearchParams()
   const [errors, setErrors] = useState<{
     email?: string | null
@@ -36,7 +34,6 @@ export function LoginPage() {
     setFormError(null)
     try {
       setUser(await signIn(email.trim(), password))
-      navigate(location.state?.from?.pathname ?? '/', { replace: true })
     } catch (err) {
       setFormError(authErrorMessage(err))
     } finally {

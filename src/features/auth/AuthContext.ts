@@ -4,6 +4,8 @@ import type { User } from '@/services/auth'
 export interface AuthState {
   user: User | null
   loading: boolean
+  error: boolean
+  retry: () => void
   setUser: (user: User | null) => void
 }
 
