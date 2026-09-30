@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 import { useSearchParams } from 'react-router'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Search, X } from 'lucide-react'
@@ -6,6 +13,8 @@ import { MovieGrid } from '@/components/movie/MovieGrid'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { GENRES } from '@/lib/genres'
+import { SORT_LABELS, sortOptions, type SortMode } from '@/lib/feeds'
+import { LANGUAGES, REGIONS, regionName, WORLDWIDE } from '@/lib/regions'
 import { filterResults, matchesTitle, uniqueById } from '@/lib/search'
 import { cn } from '@/lib/utils'
 import {
@@ -14,7 +23,16 @@ import {
   searchMovies,
 } from '@/services/tmdb'
 
-type Mode = 'search' | 'genre' | 'trending'
+type Mode = 'search' | 'browse'
+
+interface Filters {
+  q: string
+  genre: number | null
+  country: string
+  language: string | null
+  sort: SortMode
+  kids: boolean
+}
 
 // Stop auto-paging for sparse results after this many pages; "Load more"
 // still works beyond it.
@@ -22,29 +40,43 @@ const AUTO_PAGES = 5
 const KIDS_AUTO_PAGES = 10
 
 async function fetchPage(
-  {
-    mode,
-    q,
-    genre,
-    kids,
-  }: { mode: Mode; q: string; genre: number | null; kids: boolean },
+  mode: Mode,
+  f: Filters,
   page: number,
   signal: AbortSignal,
 ) {
+  const country = f.country === WORLDWIDE ? undefined : f.country
   if (mode === 'search') {
-    if (!kids) return searchMovies(q, page, signal)
+    if (!f.kids) return searchMovies(f.q, page, signal)
     // TMDB search can't filter by certification, so kids search only looks
     // inside the kid-safe catalogue.
-    const res = await discoverMovies({ kids: true, page }, signal)
-    return { ...res, results: matchesTitle(res.results, q) }
+    const res = await discoverMovies({ kids: true, country, page }, signal)
+    return { ...res, results: matchesTitle(res.results, f.q) }
   }
-  if (mode === 'genre') {
-    return discoverMovies({ genres: String(genre), kids, page }, signal)
+  // Nothing narrowed down: TMDB's own worldwide trending list.
+  if (
+    !country &&
+    !f.language &&
+    f.genre === null &&
+    f.sort === 'trending' &&
+    !f.kids
+  ) {
+    return getTrendingMovies(page, signal)
   }
-  return kids
-    ? discoverMovies({ kids: true, page }, signal)
-    : getTrendingMovies(page, signal)
+  return discoverMovies(
+    {
+      ...sortOptions(f.sort),
+      genres: f.genre === null ? undefined : String(f.genre),
+      country,
+      language: f.language ?? undefined,
+      kids: f.kids,
+      page,
+    },
+    signal,
+  )
 }
+
+const SORTS = Object.keys(SORT_LABELS) as SortMode[]
 
 export function SearchPage() {
   const { active } = useProfile()
@@ -53,6 +85,17 @@ export function SearchPage() {
   const urlQuery = params.get('q') ?? ''
   const genreParam = Number(params.get('genre'))
   const genre = GENRES.some(g => g.id === genreParam) ? genreParam : null
+  const countryParam = params.get('country')
+  const country =
+    countryParam === WORLDWIDE || REGIONS.some(r => r.code === countryParam)
+      ? countryParam!
+      : (active?.region ?? WORLDWIDE)
+  const langParam = params.get('lang')
+  const language = langParam && langParam in LANGUAGES ? langParam : null
+  const sortParam = params.get('sort') as SortMode | null
+  const sort: SortMode =
+    sortParam && SORTS.includes(sortParam) ? sortParam : 'trending'
+  const filters: Filters = { q: urlQuery, genre, country, language, sort, kids }
 
   // The input is local state so typing stays instant; the URL follows, debounced.
   const [text, setText] = useState(urlQuery)
@@ -81,20 +124,17 @@ export function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, trimmed, urlQuery])
 
-  const mode: Mode = urlQuery ? 'search' : genre !== null ? 'genre' : 'trending'
+  const mode: Mode = urlQuery ? 'search' : 'browse'
   const query = useInfiniteQuery({
-    // Search results are filtered by genre client-side, so genre only keys the
-    // discover feed; switching genre on a search costs no request.
-    queryKey: [
-      'search-page',
-      mode,
-      urlQuery,
-      mode === 'genre' ? genre : null,
-      kids,
-    ],
+    // A text search is filtered by genre/language client-side, so only browsing
+    // keys the server filters; switching them during a search costs no request.
+    queryKey:
+      mode === 'search'
+        ? ['search-page', 'search', urlQuery, kids, kids ? country : null]
+        : ['search-page', 'browse', country, language, genre, sort, kids],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) =>
-      fetchPage({ mode, q: urlQuery, genre, kids }, pageParam, signal),
+      fetchPage(mode, filters, pageParam, signal),
     getNextPageParam: last =>
       last.page < Math.min(last.total_pages, 500) ? last.page + 1 : undefined,
   })
@@ -102,8 +142,8 @@ export function SearchPage() {
   const movies = useMemo(() => {
     const all = uniqueById(query.data?.pages.flatMap(p => p.results) ?? [])
     // Discover/trending already respect the genre/kids rules server-side.
-    return mode === 'search' ? filterResults(all, { genre }) : all
-  }, [query.data, mode, genre])
+    return mode === 'search' ? filterResults(all, { genre, language }) : all
+  }, [query.data, mode, genre, language])
 
   // Load the next page as the sentinel nears the viewport. The button below is
   // the keyboard / no-IntersectionObserver path.
@@ -147,24 +187,28 @@ export function SearchPage() {
     fetchNextPage,
   ])
 
-  const setGenre = (id: number | null) =>
+  const setParam = (key: string, value: string | null) =>
     setParams(
       p => {
-        if (id === null) p.delete('genre')
-        else p.set('genre', String(id))
+        if (value === null) p.delete(key)
+        else p.set(key, value)
         return p
       },
       { replace: true },
     )
+  const setGenre = (id: number | null) =>
+    setParam('genre', id === null ? null : String(id))
 
   const heading =
     mode === 'search'
-      ? `Results for “${urlQuery}”`
-      : mode === 'genre'
-        ? GENRES.find(g => g.id === genre)!.name
-        : kids
-          ? 'Family favourites'
-          : 'Trending this week'
+      ? `Results for “${urlQuery}”${kids ? ' in kid-safe titles' : ''}`
+      : kids && !language && genre === null
+        ? `Family favourites${country === WORLDWIDE ? '' : ` in ${regionName(country)}`}`
+        : `${SORT_LABELS[sort]} · ${
+            genre === null ? '' : `${GENRES.find(g => g.id === genre)!.name} `
+          }${language ? `${LANGUAGES[language]} ` : ''}movies ${
+            country === WORLDWIDE ? 'worldwide' : `in ${regionName(country)}`
+          }`
 
   return (
     <div className='mx-auto max-w-7xl px-4 pt-24 pb-12 sm:px-6'>
@@ -212,6 +256,53 @@ export function SearchPage() {
           </button>
         )}
       </form>
+
+      <div className='mt-6 flex flex-wrap justify-center gap-3'>
+        <FilterSelect
+          label='Country'
+          value={country}
+          // Text search can't filter by country (TMDB search results carry none).
+          disabled={mode === 'search' && !kids}
+          onChange={v => setParam('country', v)}
+        >
+          <option value={WORLDWIDE}>Worldwide</option>
+          {REGIONS.map(r => (
+            <option key={r.code} value={r.code}>
+              {r.name}
+            </option>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label='Language'
+          value={language ?? ''}
+          onChange={v => setParam('lang', v || null)}
+        >
+          <option value=''>All languages</option>
+          {Object.entries(LANGUAGES).map(([code, name]) => (
+            <option key={code} value={code}>
+              {name}
+            </option>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label='Sort by'
+          value={sort}
+          disabled={mode === 'search'}
+          onChange={v => setParam('sort', v === 'trending' ? null : v)}
+        >
+          {SORTS.map(m => (
+            <option key={m} value={m}>
+              {SORT_LABELS[m]}
+            </option>
+          ))}
+        </FilterSelect>
+      </div>
+      {mode === 'search' && (
+        <p className='mt-2 text-center text-xs text-muted'>
+          Country and sort apply when browsing. Clear the search box to use
+          them.
+        </p>
+      )}
 
       <div
         role='group'
@@ -268,7 +359,7 @@ export function SearchPage() {
         ) : movies.length === 0 && !hasNextPage ? (
           <p className='py-16 text-center text-muted'>
             Nothing found{urlQuery ? ` for “${urlQuery}”` : ''}. Try another
-            title{genre !== null ? ' or clear the genre filter' : ''}.
+            title{genre !== null || language ? ' or relax the filters' : ''}.
           </p>
         ) : (
           <>
@@ -288,6 +379,38 @@ export function SearchPage() {
           </>
         )}
       </section>
+    </div>
+  )
+}
+
+function FilterSelect({
+  label,
+  value,
+  disabled,
+  onChange,
+  children,
+}: {
+  label: string
+  value: string
+  disabled?: boolean
+  onChange: (value: string) => void
+  children: React.ReactNode
+}) {
+  const id = useId()
+  return (
+    <div className='flex items-center gap-2'>
+      <label htmlFor={id} className='text-sm text-muted'>
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        disabled={disabled}
+        onChange={e => onChange(e.target.value)}
+        className='h-11 rounded-full border border-border bg-surface/70 px-4 text-sm outline-none focus:border-brand disabled:opacity-50'
+      >
+        {children}
+      </select>
     </div>
   )
 }

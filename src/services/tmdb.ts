@@ -97,7 +97,12 @@ function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 export const getMoviesByCategory = (
   category: MovieCategory,
   signal?: AbortSignal,
-) => request<Paginated<Movie>>(`/movie/${category}?page=1`, signal)
+  region?: string,
+) =>
+  request<Paginated<Movie>>(
+    `/movie/${category}?page=1${region ? `&region=${region}` : ''}`,
+    signal,
+  )
 
 export interface DiscoverOptions {
   /** TMDB genre ids; `|` = OR, `,` = AND. */
@@ -105,7 +110,14 @@ export interface DiscoverOptions {
   sort?: string
   minVotes?: number
   page?: number
-  /** Family-friendly only: rated PG or below, defaulting to Animation|Family. */
+  /** ISO 3166-1 country the film originates from (e.g. "IN"). */
+  country?: string
+  /** ISO 639-1 original language (e.g. "ta"). */
+  language?: string
+  /** Release-date window, YYYY-MM-DD. */
+  releasedAfter?: string
+  releasedBefore?: string
+  /** Family-friendly only: rated G/PG (or "U" for Indian certification). */
   kids?: boolean
 }
 
@@ -113,8 +125,12 @@ export function discoverPath({
   genres,
   sort = 'popularity.desc',
   minVotes = 300,
-  kids = false,
   page = 1,
+  country,
+  language,
+  releasedAfter,
+  releasedBefore,
+  kids = false,
 }: DiscoverOptions) {
   const params = new URLSearchParams({
     sort_by: sort,
@@ -124,11 +140,21 @@ export function discoverPath({
   })
   const g = genres || (kids ? '16|10751' : '')
   if (g) params.set('with_genres', g)
+  if (country) params.set('with_origin_country', country)
+  if (language) params.set('with_original_language', language)
+  if (releasedAfter) params.set('primary_release_date.gte', releasedAfter)
+  if (releasedBefore) params.set('primary_release_date.lte', releasedBefore)
   if (kids) {
-    params.set('certification_country', 'US')
-    // US scale is NR < G < PG: bounding both ends excludes unrated titles.
-    params.set('certification.gte', 'G')
-    params.set('certification.lte', 'PG')
+    if (country === 'IN') {
+      // Indian films are rarely certified in the US; "U" is the all-ages rating.
+      params.set('certification_country', 'IN')
+      params.set('certification', 'U')
+    } else {
+      // US scale is NR < G < PG: bounding both ends excludes unrated titles.
+      params.set('certification_country', 'US')
+      params.set('certification.gte', 'G')
+      params.set('certification.lte', 'PG')
+    }
   }
   return `/discover/movie?${params}`
 }
@@ -166,6 +192,13 @@ export function usCertification(details: MovieDetails): string {
 }
 
 export const isKidSafe = (certification: string) => KID_SAFE.has(certification)
+
+/** Kid-safe by US rating (G/PG family) or Indian "U" (all ages). */
+export function isKidSafeMovie(details: MovieDetails): boolean {
+  if (isKidSafe(usCertification(details))) return true
+  const india = details.release_dates?.results.find(r => r.iso_3166_1 === 'IN')
+  return india?.release_dates.some(d => d.certification === 'U') ?? false
+}
 
 export const getRecommendedMovies = (id: number, signal?: AbortSignal) =>
   request<Paginated<Movie>>(`/movie/${id}/recommendations?page=1`, signal)

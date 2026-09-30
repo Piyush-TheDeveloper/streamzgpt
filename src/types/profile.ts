@@ -7,6 +7,8 @@ export interface Profile {
   autoplayTrailers: boolean
   /** TMDB genre ids the profile likes. */
   genres: number[]
+  /** ISO 3166-1 country code that drives regional rows (e.g. "IN"). */
+  region: string
 }
 
 export type ProfileInput = Omit<Profile, 'id' | 'userId'>

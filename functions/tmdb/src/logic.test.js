@@ -16,6 +16,8 @@ describe('normalizePath', () => {
       '/search/movie?query=dune&page=1',
       '/movie/693134?append_to_response=videos,credits,release_dates',
       '/movie/693134/recommendations?page=1',
+      '/movie/now_playing?page=1&region=IN',
+      '/discover/movie?with_origin_country=IN&with_original_language=ta&primary_release_date.gte=2025-01-01&certification_country=IN&certification=U',
     ]) {
       expect(normalizePath(p), p).not.toBeNull()
     }

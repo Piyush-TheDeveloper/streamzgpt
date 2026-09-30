@@ -25,6 +25,12 @@ const PARAMS = new Set([
   'certification_country',
   'certification.gte',
   'certification.lte',
+  'certification',
+  'with_origin_country',
+  'with_original_language',
+  'primary_release_date.gte',
+  'primary_release_date.lte',
+  'region',
 ])
 
 /**

@@ -96,3 +96,18 @@ responses for 10 minutes. Execute permission is limited to signed-in users.
 - The proxy limits each account to 120 requests/minute, validates `page` and
   parameter lengths, and de-duplicates concurrent identical requests. It does not
   enforce kids restrictions (TMDB data is public); `ai-picks` does that server-side.
+
+## Regions and Indian cinema
+
+Each profile has a **region** (default from the browser locale, falling back to
+India; stored in the `profiles.region` column). Home then shows region-aware rows:
+the spotlight and "Popular"/"Coming soon" use TMDB's `region` parameter, plus
+"Trending in India", one row per local language (Hindi, Tamil, Telugu, Malayalam,
+Kannada) and all-time greats from that country. Rows below the fold load lazily.
+
+The Search page doubles as a browser: filter by **country**
+(`with_origin_country`), **language** (`with_original_language`), **genre** and
+**sort** (Trending / Most popular / Top rated / Newest). TMDB has no per-country
+"trending" list, so _Trending_ means "popular among films released in the last ~18
+months"; vote thresholds are lowered because regional films have fewer votes.
+Kids profiles use IN "U" certification for Indian titles and G/PG otherwise.

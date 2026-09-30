@@ -2,10 +2,13 @@ import type { Movie } from '@/types/movie'
 
 export function filterResults(
   movies: Movie[],
-  { genre }: { genre: number | null },
+  { genre, language }: { genre: number | null; language?: string | null },
 ): Movie[] {
-  if (genre === null) return movies
-  return movies.filter(m => m.genre_ids?.includes(genre))
+  return movies.filter(
+    m =>
+      (genre === null || m.genre_ids?.includes(genre)) &&
+      (!language || m.original_language === language),
+  )
 }
 
 /** Case-insensitive title match, used to search inside a kid-safe catalogue. */
