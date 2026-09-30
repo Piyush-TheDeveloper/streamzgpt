@@ -76,14 +76,14 @@ export function SignupPage() {
           error={errors.password}
         />
         {formError && (
-          <p role='alert' className='text-sm text-brand'>
+          <p role='alert' className='text-sm text-danger'>
             {formError}
           </p>
         )}
         <button
           type='submit'
           disabled={busy}
-          className='w-full rounded-md bg-brand px-4 py-2.5 text-sm font-semibold transition hover:bg-brand-hover disabled:opacity-60'
+          className='w-full rounded-md bg-brand text-on-brand px-4 py-2.5 text-sm font-semibold transition hover:bg-brand-hover disabled:opacity-60'
         >
           {busy ? 'Creating account…' : 'Create account'}
         </button>

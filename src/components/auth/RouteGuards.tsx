@@ -22,7 +22,7 @@ export function RequireAuth() {
           <button
             type='button'
             onClick={retry}
-            className='rounded-md bg-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
+            className='rounded-md bg-brand text-on-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
           >
             Try again
           </button>

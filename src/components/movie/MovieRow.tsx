@@ -17,7 +17,7 @@ export function MovieRow({
 
   return (
     <section aria-label={title} className='space-y-3'>
-      <h2 className='text-lg font-semibold sm:text-xl'>{title}</h2>
+      <h2 className='text-2xl font-extrabold'>{title}</h2>
       {error ? (
         <p role='alert' className='text-sm text-muted'>
           {error.message}
@@ -28,7 +28,7 @@ export function MovieRow({
             ? Array.from({ length: 8 }, (_, i) => (
                 <div
                   key={i}
-                  className='aspect-2/3 w-36 shrink-0 animate-pulse rounded-lg bg-surface-2 sm:w-44'
+                  className='aspect-2/3 w-36 shrink-0 animate-pulse rounded-2xl bg-surface-2 sm:w-44'
                 />
               ))
             : data.results.map(m => <MovieCard key={m.id} movie={m} />)}

@@ -14,8 +14,11 @@ export function AuthShell({
   return (
     <div className='grid min-h-dvh place-items-center px-4 py-10'>
       <div className='w-full max-w-sm space-y-6 rounded-2xl border border-border bg-surface p-6 sm:p-8'>
-        <Link to='/' className='block text-center text-2xl font-extrabold'>
-          Streamz<span className='text-brand'>GPT</span>
+        <Link
+          to='/'
+          className='block text-center font-[family-name:var(--font-display)] text-2xl font-extrabold'
+        >
+          streamz<span className='text-brand'>gpt</span>
         </Link>
         <h1 className='text-center text-xl font-semibold'>{title}</h1>
         {!isAppwriteConfigured && (
