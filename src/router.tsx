@@ -9,7 +9,6 @@ import {
   RequireProfile,
 } from '@/components/auth/RouteGuards'
 import { HomePage } from '@/pages/HomePage'
-import { ComingSoonPage } from '@/pages/ComingSoonPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 export const router = createBrowserRouter([
@@ -98,7 +97,13 @@ export const router = createBrowserRouter([
                         .SearchPage,
                     }),
                   },
-                  { path: 'ai', element: <ComingSoonPage title='AI Picks' /> },
+                  {
+                    path: 'ai',
+                    HydrateFallback: FullScreenSpinner,
+                    lazy: async () => ({
+                      Component: (await import('@/pages/AiPage')).AiPage,
+                    }),
+                  },
                 ],
               },
             ],

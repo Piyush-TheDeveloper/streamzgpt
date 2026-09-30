@@ -1,4 +1,4 @@
-import { Account, Client, TablesDB } from 'appwrite'
+import { Account, Client, Functions, TablesDB } from 'appwrite'
 import { env } from '@/lib/env'
 
 const client = new Client()
@@ -18,3 +18,6 @@ export const tables = new TablesDB(client)
 export const DATABASE_ID = 'streamzgpt'
 export const PROFILES_TABLE = 'profiles'
 export const WATCHLIST_TABLE = 'watchlist'
+
+export const functions = new Functions(client)
+export const AI_PICKS_FUNCTION = 'ai-picks'
