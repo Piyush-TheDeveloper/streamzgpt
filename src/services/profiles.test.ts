@@ -24,6 +24,7 @@ describe('toProfile', () => {
       kids: false,
       autoplayTrailers: true,
       genres: [],
+      region: 'IN',
     })
   })
 })

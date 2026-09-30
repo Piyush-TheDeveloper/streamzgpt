@@ -10,6 +10,7 @@ import {
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { AVATARS } from '@/lib/avatars'
 import { GENRES } from '@/lib/genres'
+import { detectRegion, REGIONS, WORLDWIDE } from '@/lib/regions'
 import { cn } from '@/lib/utils'
 import { validateProfileName } from '@/lib/validation'
 import { MAX_PROFILES, type Profile } from '@/types/profile'
@@ -42,6 +43,9 @@ function ProfileForm({ existing }: { existing?: Profile }) {
   const [kids, setKids] = useState(existing?.kids ?? false)
   const [autoplay, setAutoplay] = useState(existing?.autoplayTrailers ?? true)
   const [genres, setGenres] = useState<number[]>(existing?.genres ?? [])
+  const [region, setRegion] = useState(
+    existing?.region ?? detectRegion(navigator.language),
+  )
   const [nameError, setNameError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -73,6 +77,7 @@ function ProfileForm({ existing }: { existing?: Profile }) {
       kids,
       autoplayTrailers: autoplay,
       genres,
+      region,
     }
     try {
       if (existing) {
@@ -159,6 +164,29 @@ function ProfileForm({ existing }: { existing?: Profile }) {
             ))}
           </div>
         </fieldset>
+
+        <div>
+          <label htmlFor='region' className='mb-2 block text-sm text-muted'>
+            Region
+          </label>
+          <select
+            id='region'
+            value={region}
+            onChange={e => setRegion(e.target.value)}
+            className='h-12 w-full rounded-md border border-border bg-bg px-3 text-sm outline-none focus:border-brand'
+          >
+            {REGIONS.map(r => (
+              <option key={r.code} value={r.code}>
+                {r.name}
+              </option>
+            ))}
+            <option value={WORLDWIDE}>Worldwide</option>
+          </select>
+          <p className='mt-2 text-xs text-muted'>
+            Sets what’s “Trending” on Home and the language rows (for India:
+            Hindi, Tamil, Telugu, Malayalam, Kannada).
+          </p>
+        </div>
 
         <fieldset>
           <legend className='mb-3 text-sm text-muted'>Favourite genres</legend>

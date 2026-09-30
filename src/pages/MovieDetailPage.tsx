@@ -11,9 +11,8 @@ import {
   getMovieDetails,
   getRecommendedMovies,
   imageUrl,
-  isKidSafe,
+  isKidSafeMovie,
   TmdbError,
-  usCertification,
 } from '@/services/tmdb'
 
 export function MovieDetailPage() {
@@ -64,7 +63,7 @@ export function MovieDetailPage() {
   }
 
   const m = details.data
-  if (active?.kids && !isKidSafe(usCertification(m))) {
+  if (active?.kids && !isKidSafeMovie(m)) {
     return (
       <div className='mx-auto max-w-7xl px-4 py-24 text-center sm:px-6'>
         <h1 className='text-2xl font-bold'>Not available on this profile</h1>

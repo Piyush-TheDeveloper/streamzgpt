@@ -1,5 +1,6 @@
 import { ID, Permission, Role, type Models, Query } from 'appwrite'
 import { DATABASE_ID, PROFILES_TABLE, tables } from '@/lib/appwrite'
+import { DEFAULT_REGION, isKnownRegion } from '@/lib/regions'
 import { clearWatchlist } from '@/services/watchlist'
 import type { Profile, ProfileInput } from '@/types/profile'
 
@@ -10,6 +11,7 @@ type Row = Models.Row & {
   kids?: boolean
   autoplayTrailers?: boolean
   genres?: number[]
+  region?: string
 }
 
 export const toProfile = (row: Row): Profile => ({
@@ -20,6 +22,7 @@ export const toProfile = (row: Row): Profile => ({
   kids: row.kids ?? false,
   autoplayTrailers: row.autoplayTrailers ?? true,
   genres: row.genres ?? [],
+  region: isKnownRegion(row.region) ? row.region : DEFAULT_REGION,
 })
 
 export async function listProfiles(userId: string): Promise<Profile[]> {

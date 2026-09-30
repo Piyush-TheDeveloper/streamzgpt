@@ -51,7 +51,7 @@ shows for the provider.
 
 Profiles live in the `streamzgpt` database, `profiles` table (row security on;
 each row is readable/writable only by its owner). Columns: `userId`, `name`,
-`avatar`, `kids`, `autoplayTrailers`, `genres[]`. Create access is granted to
+`avatar`, `kids`, `autoplayTrailers`, `genres[]`, `region` (ISO country code or `ALL`; default `IN`). Create access is granted to
 signed-in users; per-row permissions are set by the app on create.
 
 Watchlist lives in the `watchlist` table (same owner-only row permissions):
@@ -75,7 +75,7 @@ Picks → Settings → Variables), then redeploy:
 
 Execute permission is limited to signed-in users, and the function has the
 `rows.read` scope so it can read the caller's own profile row: the kids
-restriction (only titles whose US certification is G/PG, checked per title) is
+restriction (only titles rated G/PG in the US or "U" in India, checked per title) is
 decided **server-side from that profile**, not from anything the browser sends.
 The function timeout is set to 30 s (Groq 15 s + TMDB lookups).
 
@@ -96,3 +96,18 @@ responses for 10 minutes. Execute permission is limited to signed-in users.
 - The proxy limits each account to 120 requests/minute, validates `page` and
   parameter lengths, and de-duplicates concurrent identical requests. It does not
   enforce kids restrictions (TMDB data is public); `ai-picks` does that server-side.
+
+## Regions and Indian cinema
+
+Each profile has a **region** (default from the browser locale, falling back to
+India; stored in the `profiles.region` column). Home then shows region-aware rows:
+the spotlight and "Popular"/"Coming soon" use TMDB's `region` parameter, plus
+"Trending in India", one row per local language (Hindi, Tamil, Telugu, Malayalam,
+Kannada) and all-time greats from that country. Rows below the fold load lazily.
+
+The Search page doubles as a browser: filter by **country**
+(`with_origin_country`), **language** (`with_original_language`), **genre** and
+**sort** (Trending / Most popular / Top rated / Newest). TMDB has no per-country
+"trending" list, so _Trending_ means "popular among films released in the last ~18
+months"; vote thresholds are lowered because regional films have fewer votes.
+Kids profiles use IN "U" certification for Indian titles and G/PG otherwise.

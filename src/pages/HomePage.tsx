@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { LanguageLinks } from '@/components/home/LanguageLinks'
 import { MoodPicker } from '@/components/home/MoodPicker'
 import { Spotlight } from '@/components/home/Spotlight'
 import { MovieRow } from '@/components/movie/MovieRow'
@@ -17,6 +18,7 @@ export function HomePage() {
       <Spotlight key={active!.id} feed={feeds.spotlight} />
       <div className='mx-auto max-w-7xl space-y-14 px-4 py-12 sm:px-6'>
         <MoodPicker key={active!.id} kids={active!.kids} />
+        {!active!.kids && <LanguageLinks region={active!.region} />}
         {saved.length > 0 && (
           <section aria-label='My List' className='space-y-3'>
             <h2 className='text-2xl font-extrabold'>My List</h2>
@@ -27,8 +29,8 @@ export function HomePage() {
             </div>
           </section>
         )}
-        {feeds.rows.map(r => (
-          <MovieRow key={r.title} title={r.title} feed={r.feed} />
+        {feeds.rows.map((r, i) => (
+          <MovieRow key={r.title} title={r.title} feed={r.feed} lazy={i > 1} />
         ))}
       </div>
     </div>

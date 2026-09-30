@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { filterResults, matchesTitle, uniqueById } from './search'
 import type { Movie } from '@/types/movie'
 
-const m = (id: number, genre_ids?: number[], title = `M${id}`): Movie => ({
+const m = (
+  id: number,
+  genre_ids?: number[],
+  title = `M${id}`,
+  original_language?: string,
+): Movie => ({
   id,
   title,
   overview: '',
@@ -11,6 +16,7 @@ const m = (id: number, genre_ids?: number[], title = `M${id}`): Movie => ({
   release_date: '',
   vote_average: 0,
   genre_ids,
+  original_language,
 })
 
 describe('filterResults', () => {
@@ -20,6 +26,24 @@ describe('filterResults', () => {
   })
   it('filters by genre, dropping titles without genres', () => {
     expect(filterResults(movies, { genre: 16 }).map(x => x.id)).toEqual([2])
+  })
+})
+
+describe('filterResults by language', () => {
+  const movies = [
+    m(1, [18], 'A', 'ta'),
+    m(2, [18], 'B', 'hi'),
+    m(3, [35], 'C', 'ta'),
+  ]
+  it('keeps only films in the chosen original language', () => {
+    expect(
+      filterResults(movies, { genre: null, language: 'ta' }).map(x => x.id),
+    ).toEqual([1, 3])
+  })
+  it('combines language and genre', () => {
+    expect(
+      filterResults(movies, { genre: 35, language: 'ta' }).map(x => x.id),
+    ).toEqual([3])
   })
 })
 

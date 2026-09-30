@@ -1,9 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
+import { useInView } from '@/hooks/useInView'
 import type { Feed } from '@/lib/feeds'
 import { MovieCard } from './MovieCard'
 
-export function MovieRow({ feed, title }: { feed: Feed; title: string }) {
+export function MovieRow({
+  feed,
+  title,
+  lazy = false,
+}: {
+  feed: Feed
+  title: string
+  /** Fetch only once the row is near the viewport (keeps Home's first load light). */
+  lazy?: boolean
+}) {
+  const [ref, inView] = useInView<HTMLElement>('600px')
   const { data, isPending, error } = useQuery({
+    enabled: !lazy || inView,
     queryKey: feed.key,
     queryFn: ({ signal }) => feed.fetch(signal),
   })
@@ -12,7 +24,7 @@ export function MovieRow({ feed, title }: { feed: Feed; title: string }) {
   if (data && data.results.length === 0) return null
 
   return (
-    <section aria-label={title} className='space-y-3'>
+    <section ref={ref} aria-label={title} className='space-y-3'>
       <h2 className='text-2xl font-extrabold'>{title}</h2>
       {error ? (
         <p role='alert' className='text-sm text-muted'>
