@@ -1,4 +1,4 @@
-import { Account, Client } from 'appwrite'
+import { Account, Client, TablesDB } from 'appwrite'
 import { env } from '@/lib/env'
 
 const client = new Client()
@@ -12,3 +12,8 @@ export const isAppwriteConfigured = Boolean(
 )
 
 export const account = new Account(client)
+
+export const tables = new TablesDB(client)
+
+export const DATABASE_ID = 'streamzgpt'
+export const PROFILES_TABLE = 'profiles'

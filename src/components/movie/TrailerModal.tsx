@@ -4,10 +4,12 @@ import { X } from 'lucide-react'
 export function TrailerModal({
   youtubeKey,
   title,
+  autoplay = true,
   onClose,
 }: {
   youtubeKey: string
   title: string
+  autoplay?: boolean
   onClose: () => void
 }) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -37,7 +39,7 @@ export function TrailerModal({
       <div className='aspect-video'>
         <iframe
           className='size-full rounded-xl'
-          src={`https://www.youtube-nocookie.com/embed/${youtubeKey}?autoplay=1&rel=0`}
+          src={`https://www.youtube-nocookie.com/embed/${youtubeKey}?autoplay=${autoplay ? 1 : 0}&rel=0`}
           title={`${title} trailer`}
           allow='autoplay; encrypted-media; picture-in-picture; fullscreen'
           allowFullScreen

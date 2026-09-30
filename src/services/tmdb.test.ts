@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { imageUrl, pickTrailer } from './tmdb'
+import { discoverPath, imageUrl, pickTrailer } from './tmdb'
 import type { Video } from '@/types/movie'
 
 describe('imageUrl', () => {
@@ -36,5 +36,28 @@ describe('pickTrailer', () => {
     expect(
       pickTrailer([v({ site: 'Vimeo' }), v({ type: 'Featurette' })]),
     ).toBeNull()
+  })
+})
+
+describe('discoverPath', () => {
+  it('builds a plain discover query', () => {
+    const q = new URLSearchParams(
+      discoverPath({ genres: '35|16' }).split('?')[1],
+    )
+    expect(q.get('with_genres')).toBe('35|16')
+    expect(q.get('include_adult')).toBe('false')
+    expect(q.get('certification.lte')).toBeNull()
+  })
+  it('restricts kids queries and defaults to family genres', () => {
+    const q = new URLSearchParams(discoverPath({ kids: true }).split('?')[1])
+    expect(q.get('certification.lte')).toBe('PG')
+    expect(q.get('certification_country')).toBe('US')
+    expect(q.get('with_genres')).toBe('16|10751')
+  })
+  it('keeps chosen genres for kids', () => {
+    const q = new URLSearchParams(
+      discoverPath({ kids: true, genres: '12' }).split('?')[1],
+    )
+    expect(q.get('with_genres')).toBe('12')
   })
 })

@@ -7,13 +7,14 @@ import { heroButtons } from '@/components/movie/buttonStyles'
 import { useAmbientFromImage } from '@/hooks/useAmbientFromImage'
 import { prefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { releaseYear } from '@/lib/format'
-import { getMoviesByCategory, imageUrl } from '@/services/tmdb'
+import type { Feed } from '@/lib/feeds'
+import { imageUrl } from '@/services/tmdb'
 
-export function Spotlight() {
+export function Spotlight({ feed }: { feed: Feed }) {
   const navigate = useNavigate()
   const { data, isPending, error } = useQuery({
-    queryKey: ['movies', 'now_playing'],
-    queryFn: ({ signal }) => getMoviesByCategory('now_playing', signal),
+    queryKey: feed.key,
+    queryFn: ({ signal }) => feed.fetch(signal),
   })
   const movies = useMemo(
     () => data?.results.filter(m => m.poster_path).slice(0, 10) ?? [],

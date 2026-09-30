@@ -44,11 +44,40 @@ export const getMoviesByCategory = (
   signal?: AbortSignal,
 ) => request<Paginated<Movie>>(`/movie/${category}?page=1`, signal)
 
-export const discoverMovies = (genres: string, signal?: AbortSignal) =>
-  request<Paginated<Movie>>(
-    `/discover/movie?with_genres=${encodeURIComponent(genres)}&sort_by=popularity.desc&vote_count.gte=300&page=1`,
-    signal,
-  )
+export interface DiscoverOptions {
+  /** TMDB genre ids; `|` = OR, `,` = AND. */
+  genres?: string
+  sort?: string
+  minVotes?: number
+  /** Family-friendly only: rated PG or below, defaulting to Animation|Family. */
+  kids?: boolean
+}
+
+export function discoverPath({
+  genres,
+  sort = 'popularity.desc',
+  minVotes = 300,
+  kids = false,
+}: DiscoverOptions) {
+  const params = new URLSearchParams({
+    sort_by: sort,
+    'vote_count.gte': String(minVotes),
+    include_adult: 'false',
+    page: '1',
+  })
+  const g = genres || (kids ? '16|10751' : '')
+  if (g) params.set('with_genres', g)
+  if (kids) {
+    params.set('certification_country', 'US')
+    params.set('certification.lte', 'PG')
+  }
+  return `/discover/movie?${params}`
+}
+
+export const discoverMovies = (
+  options: DiscoverOptions,
+  signal?: AbortSignal,
+) => request<Paginated<Movie>>(discoverPath(options), signal)
 
 export const getMovieDetails = (id: number, signal?: AbortSignal) =>
   request<MovieDetails>(

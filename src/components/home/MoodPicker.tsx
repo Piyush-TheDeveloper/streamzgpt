@@ -5,12 +5,16 @@ import { genreParam, MOODS } from '@/lib/moods'
 import { discoverMovies } from '@/services/tmdb'
 import { MovieCard } from '@/components/movie/MovieCard'
 
-export function MoodPicker() {
-  const [moodId, setMoodId] = useState(MOODS[0].id)
-  const mood = MOODS.find(m => m.id === moodId)!
+const KIDS_MOODS = new Set(['cozy', 'epic'])
+
+export function MoodPicker({ kids }: { kids: boolean }) {
+  const moods = kids ? MOODS.filter(m => KIDS_MOODS.has(m.id)) : MOODS
+  const [moodId, setMoodId] = useState(moods[0].id)
+  const mood = moods.find(m => m.id === moodId) ?? moods[0]
   const { data, isPending, error } = useQuery({
-    queryKey: ['mood', mood.id],
-    queryFn: ({ signal }) => discoverMovies(genreParam(mood.genres), signal),
+    queryKey: ['mood', mood.id, kids],
+    queryFn: ({ signal }) =>
+      discoverMovies({ genres: genreParam(mood.genres), kids }, signal),
   })
 
   return (
@@ -26,15 +30,15 @@ export function MoodPicker() {
         aria-label='Pick a mood'
         className='flex flex-wrap gap-2'
       >
-        {MOODS.map(m => (
+        {moods.map(m => (
           <button
             key={m.id}
             type='button'
-            aria-pressed={m.id === moodId}
+            aria-pressed={m.id === mood.id}
             onClick={() => setMoodId(m.id)}
             className={cn(
               'rounded-full border px-4 py-2.5 text-sm font-medium transition-colors',
-              m.id === moodId
+              m.id === mood.id
                 ? 'border-brand bg-brand text-on-brand'
                 : 'border-border bg-surface/60 text-fg hover:border-muted',
             )}
