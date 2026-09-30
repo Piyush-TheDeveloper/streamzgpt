@@ -67,11 +67,11 @@ it calls the function, which asks Groq for suggestions and resolves them against
 TMDB. Set these **secret variables** on the function (Console → Functions → AI
 Picks → Settings → Variables), then redeploy:
 
-| Variable       | Value                                           |
-| -------------- | ----------------------------------------------- |
-| `GROQ_API_KEY` | key from https://console.groq.com/keys          |
-| `TMDB_TOKEN`   | TMDB "API Read Access Token"                    |
-| `GROQ_MODEL`   | optional, defaults to `llama-3.3-70b-versatile` |
+| Variable       | Value                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| `GROQ_API_KEY` | key from https://console.groq.com/keys                                                                |
+| `TMDB_TOKEN`   | TMDB "API Read Access Token"                                                                          |
+| `GROQ_MODEL`   | optional: tried first; otherwise `openai/gpt-oss-120b`, then `qwen/qwen3.6-27b`, `openai/gpt-oss-20b` |
 
 Execute permission is limited to signed-in users, and the function has the
 `rows.read` scope so it can read the caller's own profile row: the kids

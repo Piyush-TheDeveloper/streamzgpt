@@ -140,6 +140,31 @@ describe('ai-picks handler', () => {
     expect(out.body.picks.map(p => p.movie.title)).toEqual(['Heat'])
   })
 
+  it('keeps working when the first Groq model has been retired (404)', async () => {
+    const base = tmdbFor()
+    const seen = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (u, i) => {
+        if (String(u).includes('groq')) {
+          const model = JSON.parse(i.body).model
+          seen.push(model)
+          if (model === 'openai/gpt-oss-120b')
+            return {
+              ok: false,
+              status: 404,
+              text: async () => 'model_not_found',
+            }
+        }
+        return base(u, i)
+      }),
+    )
+    const out = await run()
+    expect(out.status).toBe(200)
+    expect(seen).toEqual(['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'])
+    expect(out.body.picks).toHaveLength(2)
+  })
+
   it('maps Groq rate limits and failures to friendly codes', async () => {
     const base = tmdbFor()
     vi.stubGlobal(

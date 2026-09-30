@@ -1,13 +1,13 @@
 import {
+  askGroq,
   buildMessages,
   enrichPicks,
   fetchProfileKids,
+  groqModels,
+  GroqError,
   parsePicks,
   validateInput,
 } from './logic.js'
-
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 /**
  * POST { profileId, prompt?, mood?, genres?, saved? }
@@ -52,29 +52,19 @@ export default async ({ req, res, log, error }) => {
 
   let content
   try {
-    const groq = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: buildMessages(input),
-        temperature: 0.8,
-        max_tokens: 900,
-        response_format: { type: 'json_object' },
-      }),
-      signal: AbortSignal.timeout(15000),
+    const out = await askGroq({
+      apiKey: GROQ_API_KEY,
+      messages: buildMessages(input),
+      models: groqModels(process.env.GROQ_MODEL),
+      log: error,
     })
-    if (groq.status === 429) return res.json({ error: 'rate_limited' }, 429)
-    if (!groq.ok) {
-      error(`Groq responded ${groq.status}`)
-      return res.json({ error: 'upstream_error' }, 502)
-    }
-    content = (await groq.json()).choices?.[0]?.message?.content ?? ''
+    content = out.content
+    log(`groq model=${out.model}`)
   } catch (e) {
-    error(`Groq request failed: ${e.message}`)
+    if (e instanceof GroqError && e.code === 'rate_limited') {
+      return res.json({ error: 'rate_limited' }, 429)
+    }
+    error(`Groq failed: ${e.message}`)
     return res.json({ error: 'upstream_error' }, 502)
   }
 

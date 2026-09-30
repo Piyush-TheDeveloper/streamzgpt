@@ -16,15 +16,15 @@ function BackdropImage({ src }: { src: string }) {
       decoding='async'
       onLoad={() => setLoaded(true)}
       className={cn(
-        'absolute inset-0 size-full scale-110 object-cover blur-[22px] saturate-150 transition-opacity duration-700 will-change-[opacity]',
-        loaded ? 'opacity-60' : 'opacity-0',
+        'absolute inset-0 size-full scale-105 object-cover blur-[3px] saturate-150 transition-opacity duration-700 will-change-[opacity]',
+        loaded ? 'opacity-80' : 'opacity-0',
       )}
     />
   )
 }
 
 /**
- * Heavily blurred, dimmed copy of the focused film's artwork that crossfades
+ * Lightly blurred, dimmed copy of the focused film's artwork that crossfades
  * whenever `src` changes. Only opacity animates; the blur is baked into each
  * layer, so it stays cheap. Decorative (aria-hidden).
  */
@@ -53,7 +53,10 @@ export function BlurBackdrop({ src }: { src: string | null }) {
       {layers.map(l => (
         <BackdropImage key={l.id} src={l.src} />
       ))}
-      <div className='absolute inset-0 bg-bg/45' />
+      {/* With the artwork nearly sharp, keep a light dim overall and a strong
+          scrim behind the title/buttons so text stays readable on any poster. */}
+      <div className='absolute inset-0 bg-bg/25' />
+      <div className='absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-bg via-bg/80 to-transparent' />
     </div>
   )
 }
