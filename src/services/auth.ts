@@ -2,13 +2,6 @@ import { AppwriteException, ID, OAuthProvider, type Models } from 'appwrite'
 import { account } from '@/lib/appwrite'
 
 export type User = Models.User<Models.Preferences>
-export type OAuthName = 'google' | 'apple'
-
-const providers: Record<OAuthName, OAuthProvider> = {
-  google: OAuthProvider.Google,
-  apple: OAuthProvider.Apple,
-}
-
 export async function getCurrentUser(): Promise<User | null> {
   try {
     return await account.get()
@@ -33,10 +26,10 @@ export async function signUp(name: string, email: string, password: string) {
   }
 }
 
-export function signInWithOAuth(provider: OAuthName) {
+export function signInWithGoogle() {
   const origin = window.location.origin
   account.createOAuth2Session({
-    provider: providers[provider],
+    provider: OAuthProvider.Google,
     success: `${origin}/`,
     failure: `${origin}/login?error=oauth`,
   })

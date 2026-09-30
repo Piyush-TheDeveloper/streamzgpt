@@ -29,7 +29,7 @@ src/
 ## Roadmap
 
 1. Foundation ✅
-2. Appwrite auth (email, Google, Apple)
+2. Appwrite auth (email, Google) ✅
 3. Browse redesign: hero, detail pages, trailers ✅
 4. Search and discovery
 5. Watchlist / favourites
@@ -40,6 +40,7 @@ src/
 
 Set `VITE_APPWRITE_ENDPOINT` and `VITE_APPWRITE_PROJECT_ID` (see
 `.env.example`), add your dev/prod hostnames under **Overview → Platforms**, and
-enable Email/Password under **Auth → Settings**. Google and Apple are enabled
-under **Auth → Settings → OAuth2 providers** with your own client credentials;
-use the redirect URI Appwrite shows for each provider.
+enable Email/Password under **Auth → Settings**. Google sign-in is enabled under
+**Auth → Settings → Google** with your own OAuth client ID and secret (Google
+Cloud Console → APIs & Services → Credentials); use the redirect URI Appwrite
+shows for the provider.
