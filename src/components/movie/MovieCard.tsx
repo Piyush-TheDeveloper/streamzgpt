@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { useEffect, useRef, type MouseEvent } from 'react'
 import { Link } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
@@ -21,11 +21,22 @@ export function MovieCard({
 
   // Warm the detail cache so the page (and its poster) renders immediately,
   // which is what lets the poster morph land on a real element.
-  const prefetch = () =>
-    void queryClient.prefetchQuery({
-      queryKey: ['movie', movie.id],
-      queryFn: ({ signal }) => getMovieDetails(movie.id, signal),
-    })
+  // Only after a short hover/focus so sweeping across a row doesn't fire a
+  // request per card (each one is a function execution in production).
+  const timer = useRef<number>(undefined)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const cancelPrefetch = () => window.clearTimeout(timer.current)
+  const prefetch = () => {
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(
+      () =>
+        void queryClient.prefetchQuery({
+          queryKey: ['movie', movie.id],
+          queryFn: ({ signal }) => getMovieDetails(movie.id, signal),
+        }),
+      250,
+    )
+  }
 
   // Name the poster only for a plain click, and only briefly, so duplicates on
   // the page (one film in several rows) never clash in the view transition.
@@ -45,7 +56,9 @@ export function MovieCard({
         viewTransition
         onClick={nameForTransition}
         onPointerEnter={prefetch}
+        onPointerLeave={cancelPrefetch}
         onFocus={prefetch}
+        onBlur={cancelPrefetch}
         className='block'
       >
         <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-has-[a:focus-visible]:-translate-y-1.5'>

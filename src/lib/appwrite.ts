@@ -21,3 +21,4 @@ export const WATCHLIST_TABLE = 'watchlist'
 
 export const functions = new Functions(client)
 export const AI_PICKS_FUNCTION = 'ai-picks'
+export const TMDB_FUNCTION = 'tmdb'
