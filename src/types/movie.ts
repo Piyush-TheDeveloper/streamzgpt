@@ -16,3 +16,32 @@ export interface Paginated<T> {
 }
 
 export type MovieCategory = 'now_playing' | 'popular' | 'top_rated' | 'upcoming'
+
+export interface Genre {
+  id: number
+  name: string
+}
+
+export interface Video {
+  id: string
+  key: string
+  site: string
+  type: string
+  name: string
+  official: boolean
+}
+
+export interface CastMember {
+  id: number
+  name: string
+  character: string
+  profile_path: string | null
+}
+
+export interface MovieDetails extends Movie {
+  tagline: string
+  runtime: number | null
+  genres: Genre[]
+  videos: { results: Video[] }
+  credits: { cast: CastMember[] }
+}
