@@ -6,13 +6,45 @@ import { MovieGrid } from '@/components/movie/MovieGrid'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { GENRES } from '@/lib/genres'
-import { filterResults, uniqueById } from '@/lib/search'
+import { filterResults, matchesTitle, uniqueById } from '@/lib/search'
 import { cn } from '@/lib/utils'
 import {
   discoverMovies,
   getTrendingMovies,
   searchMovies,
 } from '@/services/tmdb'
+
+type Mode = 'search' | 'genre' | 'trending'
+
+// Stop auto-paging for sparse results after this many pages; "Load more"
+// still works beyond it.
+const AUTO_PAGES = 5
+const KIDS_AUTO_PAGES = 10
+
+async function fetchPage(
+  {
+    mode,
+    q,
+    genre,
+    kids,
+  }: { mode: Mode; q: string; genre: number | null; kids: boolean },
+  page: number,
+  signal: AbortSignal,
+) {
+  if (mode === 'search') {
+    if (!kids) return searchMovies(q, page, signal)
+    // TMDB search can't filter by certification, so kids search only looks
+    // inside the kid-safe catalogue.
+    const res = await discoverMovies({ kids: true, page }, signal)
+    return { ...res, results: matchesTitle(res.results, q) }
+  }
+  if (mode === 'genre') {
+    return discoverMovies({ genres: String(genre), kids, page }, signal)
+  }
+  return kids
+    ? discoverMovies({ kids: true, page }, signal)
+    : getTrendingMovies(page, signal)
+}
 
 export function SearchPage() {
   const { active } = useProfile()
@@ -24,36 +56,45 @@ export function SearchPage() {
 
   // The input is local state so typing stays instant; the URL follows, debounced.
   const [text, setText] = useState(urlQuery)
-  const debounced = useDebouncedValue(text.trim(), 300)
-  useEffect(() => {
-    if (debounced === urlQuery) return
+  const [seenUrlQuery, setSeenUrlQuery] = useState(urlQuery)
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Back/forward or a link changed ?q=: pull it into the input.
+  if (urlQuery !== seenUrlQuery) {
+    setSeenUrlQuery(urlQuery)
+    setText(urlQuery)
+  }
+  const trimmed = text.trim()
+  const debounced = useDebouncedValue(trimmed, 300)
+  const setUrlQuery = (value: string) =>
     setParams(
       p => {
-        if (debounced) p.set('q', debounced)
+        if (value) p.set('q', value)
         else p.delete('q')
         return p
       },
       { replace: true },
     )
-  }, [debounced, urlQuery, setParams])
+  useEffect(() => {
+    // Only push when typing has settled, so an external URL change isn't undone.
+    if (debounced !== trimmed || debounced === urlQuery) return
+    setUrlQuery(debounced)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debounced, trimmed, urlQuery])
 
-  const mode = urlQuery ? 'search' : genre !== null ? 'genre' : 'trending'
+  const mode: Mode = urlQuery ? 'search' : genre !== null ? 'genre' : 'trending'
   const query = useInfiniteQuery({
-    // Search results are filtered by genre client-side, so genre only keys
-    // the discover feed; switching genre on a search costs no request.
-    queryKey: ['browse', mode, urlQuery, mode === 'genre' ? genre : null, kids],
+    // Search results are filtered by genre client-side, so genre only keys the
+    // discover feed; switching genre on a search costs no request.
+    queryKey: [
+      'search-page',
+      mode,
+      urlQuery,
+      mode === 'genre' ? genre : null,
+      kids,
+    ],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) =>
-      mode === 'search'
-        ? searchMovies(urlQuery, pageParam, signal)
-        : mode === 'genre'
-          ? discoverMovies(
-              { genres: String(genre), kids, page: pageParam },
-              signal,
-            )
-          : kids
-            ? discoverMovies({ kids: true, page: pageParam }, signal)
-            : getTrendingMovies(pageParam, signal),
+      fetchPage({ mode, q: urlQuery, genre, kids }, pageParam, signal),
     getNextPageParam: last =>
       last.page < Math.min(last.total_pages, 500) ? last.page + 1 : undefined,
   })
@@ -61,8 +102,8 @@ export function SearchPage() {
   const movies = useMemo(() => {
     const all = uniqueById(query.data?.pages.flatMap(p => p.results) ?? [])
     // Discover/trending already respect the genre/kids rules server-side.
-    return mode === 'search' ? filterResults(all, { genre, kids }) : all
-  }, [query.data, mode, genre, kids])
+    return mode === 'search' ? filterResults(all, { genre }) : all
+  }, [query.data, mode, genre])
 
   // Load the next page as the sentinel nears the viewport. The button below is
   // the keyboard / no-IntersectionObserver path.
@@ -79,18 +120,32 @@ export function SearchPage() {
     return () => io.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // A heavily filtered search can yield empty pages; keep fetching until the
-  // grid has something (or pages run out).
+  // A heavily filtered search can yield near-empty pages; keep fetching for a
+  // bounded number of pages (never after an error) until the grid has content.
+  const pageCount = query.data?.pages.length ?? 0
+  const { isError } = query
   useEffect(() => {
+    const budget = kids ? KIDS_AUTO_PAGES : AUTO_PAGES
     if (
       mode === 'search' &&
+      !isError &&
       movies.length < 12 &&
+      pageCount < budget &&
       hasNextPage &&
       !isFetchingNextPage
     ) {
       void fetchNextPage()
     }
-  }, [mode, movies.length, hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [
+    mode,
+    kids,
+    isError,
+    movies.length,
+    pageCount,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ])
 
   const setGenre = (id: number | null) =>
     setParams(
@@ -116,7 +171,12 @@ export function SearchPage() {
       <h1 className='sr-only'>Search</h1>
       <form
         role='search'
-        onSubmit={(e: FormEvent) => e.preventDefault()}
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault()
+          // Submit applies immediately and dismisses the mobile keyboard.
+          setUrlQuery(trimmed)
+          inputRef.current?.blur()
+        }}
         className='relative mx-auto max-w-2xl'
       >
         <label htmlFor='movie-search' className='sr-only'>
@@ -128,6 +188,7 @@ export function SearchPage() {
         />
         <input
           id='movie-search'
+          ref={inputRef}
           type='search'
           value={text}
           onChange={e => setText(e.target.value)}
@@ -140,7 +201,11 @@ export function SearchPage() {
           <button
             type='button'
             aria-label='Clear search'
-            onClick={() => setText('')}
+            onClick={() => {
+              setText('')
+              setUrlQuery('')
+              inputRef.current?.focus()
+            }}
             className='absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full hover:bg-surface-2'
           >
             <X className='size-5' aria-hidden />

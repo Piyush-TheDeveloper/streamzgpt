@@ -1,22 +1,17 @@
 import type { Movie } from '@/types/movie'
 
-/**
- * Kids profiles can't filter search by certification (TMDB search has no such
- * filter), so only family-genre titles are listed; opening a title is still
- * gated on its real US certification.
- */
-const FAMILY_GENRES = new Set([16, 10751])
-
 export function filterResults(
   movies: Movie[],
-  { genre, kids }: { genre: number | null; kids: boolean },
+  { genre }: { genre: number | null },
 ): Movie[] {
-  return movies.filter(m => {
-    const ids = m.genre_ids ?? []
-    if (genre !== null && !ids.includes(genre)) return false
-    if (kids && !ids.some(id => FAMILY_GENRES.has(id))) return false
-    return true
-  })
+  if (genre === null) return movies
+  return movies.filter(m => m.genre_ids?.includes(genre))
+}
+
+/** Case-insensitive title match, used to search inside a kid-safe catalogue. */
+export const matchesTitle = (movies: Movie[], query: string): Movie[] => {
+  const q = query.trim().toLowerCase()
+  return q ? movies.filter(m => m.title.toLowerCase().includes(q)) : movies
 }
 
 /** Merges pages, dropping titles TMDB repeats across page boundaries. */
