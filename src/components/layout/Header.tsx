@@ -1,10 +1,7 @@
-import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
-import { Home, LogOut, Search, Sparkles, type LucideIcon } from 'lucide-react'
+import { Link, NavLink } from 'react-router'
+import { Home, Search, Sparkles, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/features/auth/AuthContext'
-import { signOut } from '@/services/auth'
+import { ProfileMenu } from './ProfileMenu'
 
 const links: { to: string; label: string; end?: boolean; icon: LucideIcon }[] =
   [
@@ -20,23 +17,6 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   )
 
 export function Header() {
-  const { user, setUser } = useAuth()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [signOutFailed, setSignOutFailed] = useState(false)
-
-  async function onSignOut() {
-    try {
-      await signOut()
-    } catch {
-      setSignOutFailed(true)
-      return
-    }
-    setUser(null)
-    queryClient.clear()
-    navigate('/login', { replace: true })
-  }
-
   return (
     <>
       <header className='pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-3 pt-3'>
@@ -55,24 +35,7 @@ export function Header() {
               </NavLink>
             ))}
           </nav>
-          {user && (
-            <div className='ml-1 flex items-center gap-2'>
-              {signOutFailed && (
-                <span role='alert' className='text-xs text-danger'>
-                  Couldn’t sign out. Try again.
-                </span>
-              )}
-              <button
-                type='button'
-                onClick={onSignOut}
-                aria-label={`Sign out ${user.name || user.email}`}
-                title='Sign out'
-                className='grid size-11 place-items-center rounded-full bg-surface-2 transition hover:bg-brand hover:text-on-brand'
-              >
-                <LogOut className='size-5' aria-hidden />
-              </button>
-            </div>
-          )}
+          <ProfileMenu />
         </div>
       </header>
 

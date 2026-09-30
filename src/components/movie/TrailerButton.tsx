@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Play } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getMovieDetails, pickTrailer } from '@/services/tmdb'
+import { useProfile } from '@/features/profiles/ProfileContext'
 import { TrailerModal } from './TrailerModal'
 
 type State =
@@ -18,6 +19,7 @@ export function TrailerButton({
   className?: string
 }) {
   const queryClient = useQueryClient()
+  const { active } = useProfile()
   const [state, setState] = useState<State>({ status: 'idle' })
 
   // Videos are fetched on click, not on mount, so the home hero doesn't pay
@@ -61,6 +63,7 @@ export function TrailerButton({
         <TrailerModal
           youtubeKey={state.key}
           title={title}
+          autoplay={active?.autoplayTrailers ?? true}
           onClose={() => setState({ status: 'idle' })}
         />
       )}

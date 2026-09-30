@@ -1,19 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { getMoviesByCategory } from '@/services/tmdb'
-import type { MovieCategory } from '@/types/movie'
+import type { Feed } from '@/lib/feeds'
 import { MovieCard } from './MovieCard'
 
-export function MovieRow({
-  category,
-  title,
-}: {
-  category: MovieCategory
-  title: string
-}) {
+export function MovieRow({ feed, title }: { feed: Feed; title: string }) {
   const { data, isPending, error } = useQuery({
-    queryKey: ['movies', category],
-    queryFn: ({ signal }) => getMoviesByCategory(category, signal),
+    queryKey: feed.key,
+    queryFn: ({ signal }) => feed.fetch(signal),
   })
+
+  // A filtered row (e.g. a kids profile's favourite genres) may have no titles.
+  if (data && data.results.length === 0) return null
 
   return (
     <section aria-label={title} className='space-y-3'>

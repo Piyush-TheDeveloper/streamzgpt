@@ -8,3 +8,10 @@ export const validatePassword = (password: string) =>
 
 export const validateName = (name: string) =>
   name.trim().length >= 2 ? null : 'Enter your name.'
+
+export const validateProfileName = (name: string) => {
+  const n = name.trim()
+  if (n.length < 1) return 'Give this profile a name.'
+  if (n.length > 24) return 'Use 24 characters or fewer.'
+  return null
+}
