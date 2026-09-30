@@ -1,0 +1,7 @@
+{
+  "name": "ai-picks",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Appwrite Function: Groq-powered movie suggestions resolved against TMDB."
+}

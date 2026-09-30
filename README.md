@@ -35,7 +35,7 @@ src/
    3c. Profiles + account menu ✅
 4. Search and discovery ✅
 5. Watchlist (My List) ✅
-6. AI suggestions (Groq via Appwrite Function)
+6. AI suggestions (Groq via Appwrite Function) ✅
 7. Tests, a11y, CI/deploy
 
 ## Auth setup (Appwrite)
@@ -58,3 +58,20 @@ Watchlist lives in the `watchlist` table (same owner-only row permissions):
 `profileId`, `userId`, `movieId`, `title`, `posterPath`, `releaseDate`,
 `voteAverage`. Row id is `{profileId}_{movieId}`, so a film can only be saved once
 per profile.
+
+## AI picks (Appwrite Function)
+
+`functions/ai-picks` is an Appwrite Function (Node 22) deployed from this repo
+(`main`, root directory `functions/ai-picks`). The browser never sees any AI key:
+it calls the function, which asks Groq for suggestions and resolves them against
+TMDB. Set these **secret variables** on the function (Console → Functions → AI
+Picks → Settings → Variables), then redeploy:
+
+| Variable       | Value                                           |
+| -------------- | ----------------------------------------------- |
+| `GROQ_API_KEY` | key from https://console.groq.com/keys          |
+| `TMDB_TOKEN`   | TMDB "API Read Access Token"                    |
+| `GROQ_MODEL`   | optional, defaults to `llama-3.3-70b-versatile` |
+
+Execute permission is limited to signed-in users. Kids profiles only receive
+titles whose US certification is G/PG (checked server-side per title).

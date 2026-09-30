@@ -1,0 +1,56 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const createExecution = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/appwrite', () => ({
+  functions: { createExecution },
+  AI_PICKS_FUNCTION: 'ai-picks',
+}))
+
+const { AiError, aiErrorMessage, getAiPicks } = await import('./ai')
+
+const exec = (status: number, body: unknown, extra = {}) => ({
+  responseStatusCode: status,
+  responseBody: typeof body === 'string' ? body : JSON.stringify(body),
+  status: 'completed',
+  ...extra,
+})
+
+beforeEach(() => vi.resetAllMocks())
+
+describe('getAiPicks', () => {
+  it('returns picks and posts the input as JSON', async () => {
+    const picks = [{ movie: { id: 1, title: 'Heat' }, reason: 'r' }]
+    createExecution.mockResolvedValue(exec(200, { picks }))
+    await expect(getAiPicks({ prompt: 'heist', kids: false })).resolves.toEqual(
+      picks,
+    )
+    const arg = createExecution.mock.calls[0][0]
+    expect(arg.functionId).toBe('ai-picks')
+    expect(JSON.parse(arg.body)).toEqual({ prompt: 'heist', kids: false })
+  })
+  it('maps known function errors', async () => {
+    createExecution.mockResolvedValue(exec(503, { error: 'not_configured' }))
+    await expect(getAiPicks({})).rejects.toMatchObject({
+      code: 'not_configured',
+    })
+    createExecution.mockResolvedValue(exec(429, { error: 'rate_limited' }))
+    await expect(getAiPicks({})).rejects.toMatchObject({ code: 'rate_limited' })
+  })
+  it('treats failed executions and network errors as unknown', async () => {
+    createExecution.mockResolvedValue(exec(500, 'oops', { status: 'failed' }))
+    await expect(getAiPicks({})).rejects.toMatchObject({ code: 'unknown' })
+    createExecution.mockRejectedValue(new Error('offline'))
+    await expect(getAiPicks({})).rejects.toBeInstanceOf(AiError)
+  })
+  it('returns [] when the body has no picks', async () => {
+    createExecution.mockResolvedValue(exec(200, {}))
+    await expect(getAiPicks({})).resolves.toEqual([])
+  })
+})
+
+describe('aiErrorMessage', () => {
+  it('has friendly copy per code', () => {
+    expect(aiErrorMessage(new AiError('rate_limited'))).toMatch(/busy/)
+    expect(aiErrorMessage(new Error('x'))).toMatch(/Couldn’t/)
+  })
+})
