@@ -74,7 +74,13 @@ export const router = createBrowserRouter([
                     .MovieDetailPage,
                 }),
               },
-              { path: 'search', element: <ComingSoonPage title='Search' /> },
+              {
+                path: 'search',
+                HydrateFallback: FullScreenSpinner,
+                lazy: async () => ({
+                  Component: (await import('@/pages/SearchPage')).SearchPage,
+                }),
+              },
               { path: 'ai', element: <ComingSoonPage title='AI Picks' /> },
             ],
           },
