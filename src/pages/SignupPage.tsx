@@ -6,8 +6,10 @@ import { OAuthButtons } from '@/components/auth/OAuthButtons'
 import { useAuth } from '@/features/auth/AuthContext'
 import { authErrorMessage, signUp } from '@/services/auth'
 import { validateEmail, validateName, validatePassword } from '@/lib/validation'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function SignupPage() {
+  useDocumentTitle('Create account')
   const { setUser } = useAuth()
   const [errors, setErrors] = useState<{
     name?: string | null

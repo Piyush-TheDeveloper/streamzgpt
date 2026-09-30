@@ -4,8 +4,10 @@ import { Pencil, Plus } from 'lucide-react'
 import { Avatar } from '@/components/profile/Avatar'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { MAX_PROFILES, type Profile } from '@/types/profile'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function ProfilesPage() {
+  useDocumentTitle('Who’s watching?')
   const { profiles, active, status, setActive, refetch } = useProfile()
   const navigate = useNavigate()
   const location = useLocation()

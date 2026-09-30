@@ -36,7 +36,7 @@ src/
 4. Search and discovery ✅
 5. Watchlist (My List) ✅
 6. AI suggestions (Groq via Appwrite Function) ✅
-7. Tests, a11y, CI/deploy
+7. Polish: page titles, link previews, preconnect ✅
 
 ## Auth setup (Appwrite)
 

@@ -51,9 +51,17 @@ export function sortOptions(
         releasedBefore: isoDaysAgo(0, now),
       }
     case 'popular':
-      return { sort: 'popularity.desc', minVotes: 20 }
+      return {
+        sort: 'popularity.desc',
+        minVotes: 20,
+        releasedBefore: isoDaysAgo(0, now),
+      }
     case 'top':
-      return { sort: 'vote_average.desc', minVotes: 50 }
+      return {
+        sort: 'vote_average.desc',
+        minVotes: 50,
+        releasedBefore: isoDaysAgo(0, now),
+      }
     case 'newest':
       return {
         sort: 'primary_release_date.desc',

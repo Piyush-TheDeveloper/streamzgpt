@@ -7,8 +7,10 @@ import { MovieCard } from '@/components/movie/MovieCard'
 import { useWatchlist } from '@/features/watchlist/useWatchlist'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { homeFeeds } from '@/lib/feeds'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function HomePage() {
+  useDocumentTitle('Home')
   const { active } = useProfile()
   const { movies: saved } = useWatchlist()
   const feeds = useMemo(() => homeFeeds(active!), [active])

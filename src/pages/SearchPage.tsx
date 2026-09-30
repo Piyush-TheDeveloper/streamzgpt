@@ -23,6 +23,7 @@ import {
   getTrendingMovies,
   searchMovies,
 } from '@/services/tmdb'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 type Mode = 'search' | 'browse'
 
@@ -82,6 +83,7 @@ async function fetchPage(
 const SORTS = Object.keys(SORT_LABELS) as SortMode[]
 
 export function SearchPage() {
+  useDocumentTitle('Search')
   const { active } = useProfile()
   const kids = active?.kids ?? false
   const [params, setParams] = useSearchParams()
