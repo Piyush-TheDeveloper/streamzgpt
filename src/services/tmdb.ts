@@ -40,27 +40,35 @@ async function direct<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 /** Production path: the `tmdb` Appwrite Function holds the token server-side. */
-async function viaFunction<T>(path: string): Promise<T> {
+async function viaFunction<T>(path: string, signal?: AbortSignal): Promise<T> {
+  signal?.throwIfAborted()
   let execution
   try {
-    execution = await functions.createExecution({
-      functionId: TMDB_FUNCTION,
-      body: JSON.stringify({ path }),
-      async: false,
-      xpath: '/',
-      method: ExecutionMethod.POST,
-      headers: { 'content-type': 'application/json' },
-    })
-  } catch {
+    // The SDK can't cancel an execution, but we can stop waiting for it so a
+    // superseded request (fast typing, genre switching) never blocks the UI.
+    execution = await raceAbort(
+      functions.createExecution({
+        functionId: TMDB_FUNCTION,
+        body: JSON.stringify({ path }),
+        async: false,
+        xpath: '/',
+        method: ExecutionMethod.POST,
+        headers: { 'content-type': 'application/json' },
+      }),
+      signal,
+    )
+  } catch (e) {
+    if (signal?.aborted) throw e
     throw new TmdbError(UNAVAILABLE)
   }
   const code = execution.responseStatusCode
-  if (code >= 400 || execution.status === 'failed') {
+  if (execution.status !== 'completed' || code >= 400) {
     if (code === 404) throw new TmdbError('TMDB request failed (404)', 404)
-    throw new TmdbError(
-      code === 503 ? UNAVAILABLE : `TMDB request failed (${code})`,
-      code,
-    )
+    if (code === 401) throw new TmdbError('Please sign in again.', 401)
+    if (code === 429)
+      throw new TmdbError('Too many requests. Try again in a moment.', 429)
+    if (code === 503) throw new TmdbError(UNAVAILABLE, 503)
+    throw new TmdbError(UNAVAILABLE, code || 500)
   }
   try {
     return JSON.parse(execution.responseBody) as T
@@ -69,8 +77,21 @@ async function viaFunction<T>(path: string): Promise<T> {
   }
 }
 
+function raceAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason)
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener('abort', onAbort))
+  })
+}
+
+// `env.tmdbToken` is only ever set in development (see lib/env), so production
+// always goes through the function and never bundles a token.
 function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  return env.tmdbToken ? direct<T>(path, signal) : viaFunction<T>(path)
+  return env.tmdbToken ? direct<T>(path, signal) : viaFunction<T>(path, signal)
 }
 
 export const getMoviesByCategory = (

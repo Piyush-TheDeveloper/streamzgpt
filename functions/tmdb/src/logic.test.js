@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createCache, fetchTmdb, normalizePath } from './logic.js'
+import {
+  createCache,
+  createRateLimiter,
+  fetchTmdb,
+  normalizePath,
+} from './logic.js'
 
 describe('normalizePath', () => {
   it('accepts the endpoints the app uses', () => {
@@ -29,6 +34,10 @@ describe('normalizePath', () => {
       null,
       42,
       '/movie/popular?' + 'x'.repeat(700),
+      '/movie/popular?page=abc',
+      '/movie/popular?page=0',
+      '/movie/popular?page=99999999',
+      '/search/movie?query=' + 'a'.repeat(150),
     ]) {
       expect(normalizePath(p), String(p)).toBeNull()
     }
@@ -59,10 +68,47 @@ describe('createCache', () => {
     c.set('a', 1)
     c.set('b', 2)
     c.set('c', 3)
-    expect(c.get('a')).toBeUndefined()
     expect(c.size).toBe(2)
     t = 101
     expect(c.get('b')).toBeUndefined()
+  })
+  it('evicts the least recently used entry, not the oldest inserted', () => {
+    const c = createCache({ max: 2 })
+    c.set('hot', 1)
+    c.set('b', 2)
+    c.get('hot')
+    c.set('c', 3)
+    expect(c.get('hot')).toBe(1)
+    expect(c.get('b')).toBeUndefined()
+  })
+  it('purges expired entries before evicting live ones', () => {
+    let t = 0
+    const c = createCache({ ttlMs: 100, max: 2, now: () => t })
+    c.set('old', 1)
+    t = 50
+    c.set('live', 2)
+    t = 120
+    c.set('new', 3)
+    expect(c.get('live')).toBe(2)
+    expect(c.get('new')).toBe(3)
+  })
+  it('supports a shorter ttl per entry', () => {
+    let t = 0
+    const c = createCache({ ttlMs: 1000, now: () => t })
+    c.set('nf', 1, 60)
+    t = 61
+    expect(c.get('nf')).toBeUndefined()
+  })
+})
+
+describe('createRateLimiter', () => {
+  it('limits per key within a window and resets after it', () => {
+    let t = 0
+    const allow = createRateLimiter({ limit: 2, windowMs: 100, now: () => t })
+    expect([allow('u1'), allow('u1'), allow('u1')]).toEqual([true, true, false])
+    expect(allow('u2')).toBe(true)
+    t = 101
+    expect(allow('u1')).toBe(true)
   })
 })
 

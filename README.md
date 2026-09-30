@@ -90,5 +90,9 @@ responses for 10 minutes. Execute permission is limited to signed-in users.
 - **Production:** add a secret variable `TMDB_TOKEN` to the `tmdb` function,
   redeploy it, then delete `VITE_TMDB_TOKEN` from the site and redeploy the site.
 - **Local development:** set `VITE_TMDB_TOKEN` in `.env.local` to call TMDB
-  directly (that token is visible in the browser, so only use it locally). If it
-  is unset, requests go through the function.
+  directly. It is only honoured by the dev server: production builds ignore it, so
+  it can never ship in the bundle or bypass the proxy. If it is unset, requests go
+  through the function.
+- The proxy limits each account to 120 requests/minute, validates `page` and
+  parameter lengths, and de-duplicates concurrent identical requests. It does not
+  enforce kids restrictions (TMDB data is public); `ai-picks` does that server-side.

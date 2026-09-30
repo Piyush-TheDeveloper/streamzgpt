@@ -1,6 +1,14 @@
-import { createCache, fetchTmdb, normalizePath } from './logic.js'
+import {
+  createCache,
+  createRateLimiter,
+  fetchTmdb,
+  normalizePath,
+} from './logic.js'
 
 const cache = createCache()
+const allow = createRateLimiter()
+// Identical concurrent requests share one TMDB call.
+const inflight = new Map()
 
 /**
  * POST { path: "/movie/popular?page=1" } -> same status + TMDB JSON body.
@@ -26,20 +34,28 @@ export default async ({ req, res, error }) => {
   if (!path) return res.json({ error: 'bad_request' }, 400)
 
   const cached = cache.get(path)
-  if (cached) return res.json(cached, 200)
+  if (cached) return res.json(cached.data, cached.status)
 
   try {
-    const { status, data } = await fetchTmdb(path, token)
+    let pending = inflight.get(path)
+    if (!pending) {
+      pending = fetchTmdb(path, token).finally(() => inflight.delete(path))
+      inflight.set(path, pending)
+    }
+    const { status, data } = await pending
     if (status === 200 && data) {
-      cache.set(path, data)
+      cache.set(path, { status: 200, data })
       return res.json(data, 200)
     }
-    // Pass TMDB's status through (e.g. 404 for an unknown film) without the body.
+    if (status === 404) {
+      // Remember "not found" briefly so a removed film isn't re-fetched every time.
+      const body = { error: 'not_found' }
+      cache.set(path, { status: 404, data: body }, 60_000)
+      return res.json(body, 404)
+    }
     if (status === 401) error('TMDB rejected the token (401)')
-    return res.json(
-      { error: 'upstream_error', status },
-      status === 404 ? 404 : 502,
-    )
+    if (status === 429) return res.json({ error: 'rate_limited' }, 429)
+    return res.json({ error: 'upstream_error', status }, 502)
   } catch (e) {
     error(`TMDB request failed: ${e.message}`)
     return res.json({ error: 'upstream_error' }, 502)

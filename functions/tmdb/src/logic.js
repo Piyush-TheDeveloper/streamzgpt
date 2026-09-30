@@ -49,17 +49,24 @@ export function normalizePath(input) {
   if (!ROUTES.some(r => r.test(url.pathname))) return null
 
   const params = new URLSearchParams()
-  for (const [key, value] of [...url.searchParams].sort(([a], [b]) =>
-    a.localeCompare(b),
-  )) {
-    if (PARAMS.has(key) && value.length <= 200) params.set(key, value)
+  const entries = [...url.searchParams].sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  )
+  for (const [key, value] of entries) {
+    if (!PARAMS.has(key)) continue
+    if (value.length > 100) return null
+    if (key === 'page') {
+      const page = Number(value)
+      if (!Number.isInteger(page) || page < 1 || page > 500) return null
+    }
+    params.set(key, value)
   }
   // Adult content is never proxied, whatever the client asked for.
   params.set('include_adult', 'false')
   return `${url.pathname}?${params}`
 }
 
-/** Small TTL cache with a size cap (function containers stay warm between calls). */
+/** Small LRU cache with TTL (function containers stay warm between calls). */
 export function createCache({
   ttlMs = 10 * 60_000,
   max = 500,
@@ -70,19 +77,43 @@ export function createCache({
     get(key) {
       const hit = store.get(key)
       if (!hit) return undefined
-      if (hit.expires <= now()) {
-        store.delete(key)
-        return undefined
-      }
+      store.delete(key)
+      if (hit.expires <= now()) return undefined
+      store.set(key, hit) // re-insert: most recently used goes last
       return hit.value
     },
-    set(key, value) {
+    set(key, value, ttl = ttlMs) {
+      store.delete(key)
+      if (store.size >= max) {
+        for (const [k, v] of store) if (v.expires <= now()) store.delete(k)
+      }
       if (store.size >= max) store.delete(store.keys().next().value)
-      store.set(key, { value, expires: now() + ttlMs })
+      store.set(key, { value, expires: now() + ttl })
     },
     get size() {
       return store.size
     },
+  }
+}
+
+/** Fixed-window per-key limiter, so one account can't drain the shared TMDB quota. */
+export function createRateLimiter({
+  limit = 120,
+  windowMs = 60_000,
+  now = Date.now,
+} = {}) {
+  const hits = new Map()
+  return key => {
+    const t = now()
+    const entry = hits.get(key)
+    if (!entry || entry.resetAt <= t) {
+      hits.set(key, { count: 1, resetAt: t + windowMs })
+      if (hits.size > 5000)
+        for (const [k, v] of hits) if (v.resetAt <= t) hits.delete(k)
+      return true
+    }
+    entry.count += 1
+    return entry.count <= limit
   }
 }
 
