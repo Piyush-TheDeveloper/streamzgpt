@@ -31,17 +31,37 @@ export const toMovie = (row: Row): Movie => ({
   vote_average: row.voteAverage ?? 0,
 })
 
+const PAGE = 100
+const MAX_ITEMS = 1000
+
+/** Reads the whole list (paged, newest first) so nothing is silently dropped. */
+async function listRows(profileId: string): Promise<Row[]> {
+  const rows: Row[] = []
+  while (rows.length < MAX_ITEMS) {
+    const res = await tables.listRows<Row>({
+      databaseId: DATABASE_ID,
+      tableId: WATCHLIST_TABLE,
+      queries: [
+        Query.equal('profileId', profileId),
+        Query.orderDesc('$createdAt'),
+        Query.limit(PAGE),
+        ...(rows.length ? [Query.cursorAfter(rows[rows.length - 1].$id)] : []),
+      ],
+    })
+    rows.push(...res.rows)
+    if (res.rows.length < PAGE) break
+  }
+  return rows
+}
+
 export async function listWatchlist(profileId: string): Promise<Movie[]> {
-  const res = await tables.listRows<Row>({
-    databaseId: DATABASE_ID,
-    tableId: WATCHLIST_TABLE,
-    queries: [
-      Query.equal('profileId', profileId),
-      Query.orderDesc('$createdAt'),
-      Query.limit(200),
-    ],
-  })
-  return res.rows.map(toMovie)
+  return (await listRows(profileId)).map(toMovie)
+}
+
+/** Removes every saved title for a profile (used when the profile is deleted). */
+export async function clearWatchlist(profileId: string) {
+  const rows = await listRows(profileId)
+  await Promise.all(rows.map(r => removeFromWatchlist(profileId, r.movieId)))
 }
 
 export async function addToWatchlist(

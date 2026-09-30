@@ -48,7 +48,7 @@ export function MovieCard({
         onFocus={prefetch}
         className='block'
       >
-        <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-focus-visible:-translate-y-1.5'>
+        <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-has-[a:focus-visible]:-translate-y-1.5'>
           {poster ? (
             <img
               src={poster}

@@ -70,7 +70,15 @@ export function ProfileMenu() {
         // lands on an element Safari/Firefox won't focus: ignore that case
         // (outside clicks are handled by the pointerdown listener).
         const next = e.relatedTarget as Node | null
-        if (open && next && !e.currentTarget.contains(next)) setOpen(false)
+        if (!open) return
+        if (next) {
+          if (!e.currentTarget.contains(next)) setOpen(false)
+        } else {
+          // Focus left the page (e.g. Tab into browser chrome): close then.
+          requestAnimationFrame(() => {
+            if (!document.hasFocus()) setOpen(false)
+          })
+        }
       }}
     >
       <button

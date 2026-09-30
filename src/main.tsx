@@ -9,25 +9,19 @@ import { router } from '@/router'
 import './index.css'
 
 // After a deploy, an open tab may request chunks that no longer exist. Reload
-// once to pick up the new build (the flag prevents a reload loop).
-window.addEventListener('vite:preloadError', () => {
+// to pick up the new build, at most once a minute so a genuinely broken chunk
+// surfaces the error page instead of looping.
+window.addEventListener('vite:preloadError', event => {
   try {
-    if (sessionStorage.getItem('streamz.reloaded')) return
-    sessionStorage.setItem('streamz.reloaded', '1')
+    const last = Number(sessionStorage.getItem('streamz.reloadedAt') ?? 0)
+    if (Date.now() - last < 60_000) return
+    sessionStorage.setItem('streamz.reloadedAt', String(Date.now()))
   } catch {
     return
   }
+  event.preventDefault()
   window.location.reload()
 })
-
-// A healthy load re-arms the reload guard for the next deploy.
-window.setTimeout(() => {
-  try {
-    sessionStorage.removeItem('streamz.reloaded')
-  } catch {
-    /* ignore */
-  }
-}, 5000)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,5 +1,8 @@
 import { Bookmark, BookmarkCheck } from 'lucide-react'
-import { useWatchlist } from '@/features/watchlist/useWatchlist'
+import {
+  useIsSaved,
+  useToggleWatchlist,
+} from '@/features/watchlist/useWatchlist'
 import { cn } from '@/lib/utils'
 import type { Movie } from '@/types/movie'
 
@@ -13,8 +16,8 @@ export function WatchlistButton({
   variant?: 'icon' | 'full'
   className?: string
 }) {
-  const { has, toggle } = useWatchlist()
-  const saved = has(movie.id)
+  const saved = useIsSaved(movie.id)
+  const toggle = useToggleWatchlist()
   const label = saved
     ? `Remove ${movie.title} from My List`
     : `Add ${movie.title} to My List`
@@ -25,7 +28,7 @@ export function WatchlistButton({
       <button
         type='button'
         aria-pressed={saved}
-        onClick={() => toggle(movie)}
+        onClick={() => toggle(movie, saved)}
         className={cn(
           'inline-flex items-center gap-2 rounded-md border border-border bg-surface-2/70 px-5 py-2.5 text-sm font-semibold transition hover:bg-surface-2',
           saved && 'border-brand text-brand',
@@ -43,7 +46,7 @@ export function WatchlistButton({
       aria-pressed={saved}
       aria-label={label}
       title={label}
-      onClick={() => toggle(movie)}
+      onClick={() => toggle(movie, saved)}
       className={cn(
         'grid size-11 place-items-center rounded-full bg-bg/80 backdrop-blur transition hover:bg-bg',
         saved ? 'text-brand' : 'text-fg',

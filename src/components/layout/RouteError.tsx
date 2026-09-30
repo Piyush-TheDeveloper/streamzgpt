@@ -1,18 +1,18 @@
-import { isRouteErrorResponse, useRouteError } from 'react-router'
+import { useEffect } from 'react'
+import { useRouteError } from 'react-router'
 
 export function RouteError() {
   const error = useRouteError()
-  const notFound = isRouteErrorResponse(error) && error.status === 404
+  useEffect(() => {
+    console.error('Route error:', error)
+  }, [error])
+
   return (
     <main className='grid min-h-dvh place-items-center px-4 text-center'>
       <div className='space-y-4'>
-        <h1 className='text-3xl font-bold'>
-          {notFound ? 'Page not found' : 'Something went wrong'}
-        </h1>
+        <h1 className='text-3xl font-bold'>Something went wrong</h1>
         <p className='text-muted'>
-          {notFound
-            ? 'That page doesn’t exist.'
-            : 'The app may have just been updated. Reloading usually fixes it.'}
+          If the app was just updated, reloading usually fixes it.
         </p>
         <div className='flex justify-center gap-3'>
           <button
