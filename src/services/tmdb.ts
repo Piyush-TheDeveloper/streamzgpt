@@ -44,6 +44,12 @@ export const getMoviesByCategory = (
   signal?: AbortSignal,
 ) => request<Paginated<Movie>>(`/movie/${category}?page=1`, signal)
 
+export const discoverMovies = (genres: string, signal?: AbortSignal) =>
+  request<Paginated<Movie>>(
+    `/discover/movie?with_genres=${encodeURIComponent(genres)}&sort_by=popularity.desc&vote_count.gte=300&page=1`,
+    signal,
+  )
+
 export const getMovieDetails = (id: number, signal?: AbortSignal) =>
   request<MovieDetails>(
     `/movie/${id}?append_to_response=videos,credits`,
@@ -66,5 +72,5 @@ export function pickTrailer(videos: Video[]): Video | null {
 
 export const imageUrl = (
   path: string | null,
-  size: 'w342' | 'w500' | 'w780' | 'original' = 'w500',
+  size: 'w92' | 'w342' | 'w500' | 'w780' | 'original' = 'w500',
 ) => (path ? `${IMG_URL}/${size}${path}` : null)

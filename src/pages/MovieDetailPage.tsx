@@ -42,7 +42,7 @@ export function MovieDetailPage() {
             <button
               type='button'
               onClick={() => details.refetch()}
-              className='mt-4 rounded-md bg-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
+              className='mt-4 rounded-md bg-brand text-on-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
             >
               Try again
             </button>
@@ -75,11 +75,12 @@ export function MovieDetailPage() {
           />
         )}
         <div className='absolute inset-0 bg-linear-to-t from-bg to-transparent' />
-        <div className='relative mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row'>
+        <div className='relative mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-10 pt-28 sm:px-6 md:flex-row'>
           {poster && (
             <img
               src={poster}
               alt={`${m.title} poster`}
+              style={{ viewTransitionName: `poster-${m.id}` }}
               className='w-48 shrink-0 self-center rounded-xl ring-1 ring-border md:w-64 md:self-start'
             />
           )}
@@ -93,10 +94,7 @@ export function MovieDetailPage() {
             {m.tagline && <p className='italic text-muted'>{m.tagline}</p>}
             <div className='flex flex-wrap items-center gap-4 text-sm'>
               <span className='flex items-center gap-1'>
-                <Star
-                  className='size-4 fill-yellow-400 text-yellow-400'
-                  aria-hidden
-                />
+                <Star className='size-4 fill-brand text-brand' aria-hidden />
                 {m.vote_average.toFixed(1)}
               </span>
               {runtime && (
@@ -120,7 +118,7 @@ export function MovieDetailPage() {
             <TrailerButton
               movieId={m.id}
               title={m.title}
-              className={`${heroButtons} bg-brand hover:bg-brand-hover`}
+              className={`${heroButtons} bg-brand text-on-brand hover:bg-brand-hover`}
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/features/auth/AuthContext'
 
-function FullScreenSpinner() {
+export function FullScreenSpinner() {
   return (
     <div className='grid min-h-dvh place-items-center' role='status'>
       <div className='size-8 animate-spin rounded-full border-2 border-border border-t-brand' />
@@ -22,7 +22,7 @@ export function RequireAuth() {
           <button
             type='button'
             onClick={retry}
-            className='rounded-md bg-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
+            className='rounded-md bg-brand text-on-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
           >
             Try again
           </button>

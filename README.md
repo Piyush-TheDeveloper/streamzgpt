@@ -31,6 +31,7 @@ src/
 1. Foundation ✅
 2. Appwrite auth (email, Google) ✅
 3. Browse redesign: hero, detail pages, trailers ✅
+3b. "Afterglow" redesign ✅
 4. Search and discovery
 5. Watchlist / favourites
 6. AI suggestions (Groq via Appwrite Function)

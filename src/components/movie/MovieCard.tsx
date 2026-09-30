@@ -1,20 +1,49 @@
+import type { MouseEvent } from 'react'
 import { Link } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
-import { imageUrl } from '@/services/tmdb'
+import { getMovieDetails, imageUrl } from '@/services/tmdb'
+import { releaseYear } from '@/lib/format'
 import type { Movie } from '@/types/movie'
 
 export function MovieCard({ movie }: { movie: Movie }) {
+  const queryClient = useQueryClient()
   const poster = imageUrl(movie.poster_path, 'w342')
+  const year = releaseYear(movie.release_date)
+
+  // Warm the detail cache so the page (and its poster) renders immediately,
+  // which is what lets the poster morph land on a real element.
+  const prefetch = () =>
+    void queryClient.prefetchQuery({
+      queryKey: ['movie', movie.id],
+      queryFn: ({ signal }) => getMovieDetails(movie.id, signal),
+    })
+
+  // Name the poster only for a plain click, and only briefly, so duplicates on
+  // the page (one film in several rows) never clash in the view transition.
+  const nameForTransition = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+      return
+    const img = e.currentTarget.querySelector('img')
+    if (!img) return
+    img.style.viewTransitionName = `poster-${movie.id}`
+    window.setTimeout(() => (img.style.viewTransitionName = ''), 1000)
+  }
+
   return (
     <Link
       to={`/movie/${movie.id}`}
-      className='group block w-36 shrink-0 rounded-lg sm:w-44'
+      viewTransition
+      onClick={nameForTransition}
+      onPointerEnter={prefetch}
+      onFocus={prefetch}
+      className='group block w-36 shrink-0 sm:w-44'
     >
-      <div className='relative aspect-2/3 overflow-hidden rounded-lg bg-surface-2 ring-1 ring-border transition group-hover:scale-105 group-hover:ring-brand'>
+      <div className='relative aspect-2/3 overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-border transition duration-300 ease-out group-hover:-translate-y-1.5 group-hover:ring-brand group-focus-visible:-translate-y-1.5'>
         {poster ? (
           <img
             src={poster}
-            alt={movie.title}
+            alt=''
             loading='lazy'
             className='size-full object-cover'
           />
@@ -23,13 +52,14 @@ export function MovieCard({ movie }: { movie: Movie }) {
             {movie.title}
           </div>
         )}
+        <span className='absolute left-2 top-2 flex items-center gap-1 rounded-full bg-bg/80 px-2 py-1 text-xs font-semibold backdrop-blur'>
+          <Star className='size-3 fill-brand text-brand' aria-hidden />
+          <span className='sr-only'>Rated</span>
+          {movie.vote_average.toFixed(1)}
+        </span>
       </div>
-      <h3 className='mt-2 truncate text-sm font-medium'>{movie.title}</h3>
-      <p className='flex items-center gap-1 text-xs text-muted'>
-        <Star className='size-3 fill-yellow-400 text-yellow-400' aria-hidden />
-        {movie.vote_average.toFixed(1)}
-        {movie.release_date && ` · ${movie.release_date.slice(0, 4)}`}
-      </p>
+      <h3 className='mt-2.5 truncate text-sm font-semibold'>{movie.title}</h3>
+      {year && <p className='text-xs text-muted'>{year}</p>}
     </Link>
   )
 }

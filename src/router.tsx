@@ -1,19 +1,32 @@
 import { createBrowserRouter } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { GuestOnly, RequireAuth } from '@/components/auth/RouteGuards'
+import {
+  FullScreenSpinner,
+  GuestOnly,
+  RequireAuth,
+} from '@/components/auth/RouteGuards'
 import { HomePage } from '@/pages/HomePage'
-import { MovieDetailPage } from '@/pages/MovieDetailPage'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
-import { LoginPage } from '@/pages/LoginPage'
-import { SignupPage } from '@/pages/SignupPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
     element: <GuestOnly />,
     children: [
-      { path: 'login', element: <LoginPage /> },
-      { path: 'signup', element: <SignupPage /> },
+      {
+        path: 'login',
+        HydrateFallback: FullScreenSpinner,
+        lazy: async () => ({
+          Component: (await import('@/pages/LoginPage')).LoginPage,
+        }),
+      },
+      {
+        path: 'signup',
+        HydrateFallback: FullScreenSpinner,
+        lazy: async () => ({
+          Component: (await import('@/pages/SignupPage')).SignupPage,
+        }),
+      },
     ],
   },
   {
@@ -23,7 +36,14 @@ export const router = createBrowserRouter([
         element: <RequireAuth />,
         children: [
           { index: true, element: <HomePage /> },
-          { path: 'movie/:id', element: <MovieDetailPage /> },
+          {
+            path: 'movie/:id',
+            HydrateFallback: FullScreenSpinner,
+            lazy: async () => ({
+              Component: (await import('@/pages/MovieDetailPage'))
+                .MovieDetailPage,
+            }),
+          },
           { path: 'search', element: <ComingSoonPage title='Search' /> },
           { path: 'ai', element: <ComingSoonPage title='AI Picks' /> },
         ],
