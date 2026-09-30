@@ -61,6 +61,21 @@ describe('discoverPath', () => {
     expect(q.get('certification_country')).toBe('US')
     expect(q.get('with_genres')).toBe('16|10751')
   })
+  it('uses a lower vote floor for regional queries', () => {
+    const vc = (o: object) =>
+      new URLSearchParams(discoverPath(o).split('?')[1]).get('vote_count.gte')
+    expect(vc({ country: 'IN' })).toBe('10')
+    expect(vc({})).toBe('300')
+    expect(vc({ country: 'IN', minVotes: 50 })).toBe('50')
+  })
+  it('uses Indian U certification for kids in India', () => {
+    const q = new URLSearchParams(
+      discoverPath({ kids: true, country: 'IN' }).split('?')[1],
+    )
+    expect(q.get('certification_country')).toBe('IN')
+    expect(q.get('certification')).toBe('U')
+    expect(q.get('certification.lte')).toBeNull()
+  })
   it('keeps chosen genres for kids', () => {
     const q = new URLSearchParams(
       discoverPath({ kids: true, genres: '12' }).split('?')[1],

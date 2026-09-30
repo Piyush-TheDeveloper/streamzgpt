@@ -51,7 +51,7 @@ shows for the provider.
 
 Profiles live in the `streamzgpt` database, `profiles` table (row security on;
 each row is readable/writable only by its owner). Columns: `userId`, `name`,
-`avatar`, `kids`, `autoplayTrailers`, `genres[]`. Create access is granted to
+`avatar`, `kids`, `autoplayTrailers`, `genres[]`, `region` (ISO country code or `ALL`; default `IN`). Create access is granted to
 signed-in users; per-row permissions are set by the app on create.
 
 Watchlist lives in the `watchlist` table (same owner-only row permissions):

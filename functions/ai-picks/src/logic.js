@@ -157,14 +157,18 @@ async function isKidSafe(movieId, token, fetchImpl) {
     token,
     fetchImpl,
   )
-  const us = results.find(r => r.iso_3166_1 === 'US')
-  const dates = us?.release_dates ?? []
-  // Type 3 = theatrical; prefer it so a premiere/digital entry can't mask the rating.
-  const cert =
-    dates.find(d => d.type === 3 && d.certification)?.certification ??
-    dates.find(d => d.certification)?.certification ??
-    ''
-  return KID_SAFE.has(cert)
+  const certOf = country => {
+    const dates =
+      results.find(r => r.iso_3166_1 === country)?.release_dates ?? []
+    // Type 3 = theatrical; prefer it so a premiere/digital entry can't mask the rating.
+    return (
+      dates.find(d => d.type === 3 && d.certification)?.certification ??
+      dates.find(d => d.certification)?.certification ??
+      ''
+    )
+  }
+  // US G/PG family ratings, or India's all-ages "U".
+  return KID_SAFE.has(certOf('US')) || certOf('IN') === 'U'
 }
 
 /**

@@ -3,8 +3,9 @@ import { findRegion, LANGUAGES, regionName } from '@/lib/regions'
 
 /** Shortcuts into the browse page, one per local language of the region. */
 export function LanguageLinks({ region }: { region: string }) {
-  const languages = findRegion(region)?.languages ?? []
-  if (languages.length < 2) return null
+  const r = findRegion(region)
+  if (!r?.languageRows) return null
+  const languages = r.languages
   return (
     <section aria-labelledby='lang-heading' className='space-y-3'>
       <h2 id='lang-heading' className='text-2xl font-extrabold'>

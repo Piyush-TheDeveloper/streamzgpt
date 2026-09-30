@@ -210,6 +210,28 @@ describe('enrichPicks', () => {
     expect(items.map(o => o.movie.title)).toEqual(['Up'])
   })
 
+  it('accepts Indian U-rated films for kids when there is no US rating', async () => {
+    const f = vi.fn(async url => {
+      if (url.includes('/search/movie'))
+        return json({ results: [movie(20, 'Taare Zameen Par')] })
+      return json({
+        results: [
+          {
+            iso_3166_1: 'IN',
+            release_dates: [{ type: 3, certification: 'U' }],
+          },
+        ],
+      })
+    })
+    const { items } = await enrichPicks({
+      picks: [{ title: 'Taare Zameen Par', year: null, reason: '' }],
+      token: 't',
+      kids: true,
+      fetchImpl: f,
+    })
+    expect(items).toHaveLength(1)
+  })
+
   it('removes duplicates that resolve to the same film', async () => {
     const f = vi.fn().mockResolvedValue(json({ results: [movie(1, 'Heat')] }))
     const { items } = await enrichPicks({

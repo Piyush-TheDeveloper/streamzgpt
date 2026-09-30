@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   detectRegion,
   findRegion,
+  isKnownRegion,
   LANGUAGES,
   REGIONS,
   regionName,
@@ -15,6 +16,12 @@ describe('regions', () => {
     expect(detectRegion('en-AU')).toBe('IN')
     expect(detectRegion('en')).toBe('IN')
     expect(detectRegion(undefined)).toBe('IN')
+  })
+  it('recognises only supported region codes', () => {
+    expect(isKnownRegion('IN')).toBe(true)
+    expect(isKnownRegion('ALL')).toBe(true)
+    expect(isKnownRegion('IN&with_genres=27')).toBe(false)
+    expect(isKnownRegion(undefined)).toBe(false)
   })
   it('names regions, including worldwide', () => {
     expect(regionName('IN')).toBe('India')

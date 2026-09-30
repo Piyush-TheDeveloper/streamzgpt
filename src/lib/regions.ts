@@ -3,6 +3,8 @@ export interface Region {
   name: string
   /** ISO 639-1 codes of the languages people there watch, most common first. */
   languages: string[]
+  /** True when those languages are native to the country (so "Tamil movies from India" is meaningful). */
+  languageRows?: boolean
 }
 
 export const WORLDWIDE = 'ALL'
@@ -12,6 +14,7 @@ export const REGIONS: Region[] = [
     code: 'IN',
     name: 'India',
     languages: ['hi', 'ta', 'te', 'ml', 'kn', 'bn', 'mr', 'pa'],
+    languageRows: true,
   },
   { code: 'US', name: 'United States', languages: ['en', 'es'] },
   { code: 'GB', name: 'United Kingdom', languages: ['en'] },
@@ -54,6 +57,10 @@ export const DEFAULT_REGION = 'IN'
 
 export const findRegion = (code: string | null | undefined) =>
   REGIONS.find(r => r.code === code)
+
+export const isKnownRegion = (
+  code: string | null | undefined,
+): code is string => code === WORLDWIDE || findRegion(code) !== undefined
 
 export const regionName = (code: string) =>
   code === WORLDWIDE ? 'the world' : (findRegion(code)?.name ?? code)

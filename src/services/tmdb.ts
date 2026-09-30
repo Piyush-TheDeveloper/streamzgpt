@@ -100,7 +100,7 @@ export const getMoviesByCategory = (
   region?: string,
 ) =>
   request<Paginated<Movie>>(
-    `/movie/${category}?page=1${region ? `&region=${region}` : ''}`,
+    `/movie/${category}?${new URLSearchParams({ page: '1', ...(region ? { region } : {}) })}`,
     signal,
   )
 
@@ -124,7 +124,7 @@ export interface DiscoverOptions {
 export function discoverPath({
   genres,
   sort = 'popularity.desc',
-  minVotes = 300,
+  minVotes: minVotesOption,
   page = 1,
   country,
   language,
@@ -132,6 +132,9 @@ export function discoverPath({
   releasedBefore,
   kids = false,
 }: DiscoverOptions) {
+  // Regional cinema has far fewer TMDB votes than Hollywood, so its default
+  // floor is much lower.
+  const minVotes = minVotesOption ?? (country ? 10 : 300)
   const params = new URLSearchParams({
     sort_by: sort,
     'vote_count.gte': String(minVotes),

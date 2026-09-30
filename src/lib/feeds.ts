@@ -111,7 +111,8 @@ export function homeFeeds(profile: Profile, now: Date = new Date()): HomeFeeds {
   }
 
   const where = home ? `in ${regionName(home)}` : 'worldwide'
-  const languages = (findRegion(home)?.languages ?? []).slice(0, 5)
+  const r = findRegion(home)
+  const languages = r?.languageRows ? r.languages.slice(0, 5) : []
   return {
     spotlight: category('now_playing', home),
     rows: [
@@ -132,7 +133,7 @@ export function homeFeeds(profile: Profile, now: Date = new Date()): HomeFeeds {
         feed: category('popular', home),
       },
       // One row per local language (Hindi, Tamil, Telugu, ...).
-      ...(languages.length > 1
+      ...(languages.length > 0
         ? languages.map(l => ({
             title: `${LANGUAGES[l]} movies`,
             feed: discover({

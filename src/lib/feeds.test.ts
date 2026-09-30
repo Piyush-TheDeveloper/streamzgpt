@@ -39,6 +39,10 @@ describe('homeFeeds', () => {
 
   it('has no language rows for single-language regions and no region rows worldwide', () => {
     expect(titles({ ...base, region: 'GB' })).not.toContain('English movies')
+    // Cross-border languages must not become rows like "Spanish movies from the US".
+    expect(titles({ ...base, region: 'US' }).join()).not.toMatch(
+      /Spanish|English movies/,
+    )
     const world = titles({ ...base, region: 'ALL' })
     expect(world).toEqual([
       'Popular right now',

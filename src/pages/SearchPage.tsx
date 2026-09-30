@@ -13,6 +13,7 @@ import { MovieGrid } from '@/components/movie/MovieGrid'
 import { useProfile } from '@/features/profiles/ProfileContext'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { GENRES } from '@/lib/genres'
+import { isoDaysAgo } from '@/lib/dates'
 import { SORT_LABELS, sortOptions, type SortMode } from '@/lib/feeds'
 import { LANGUAGES, REGIONS, regionName, WORLDWIDE } from '@/lib/regions'
 import { filterResults, matchesTitle, uniqueById } from '@/lib/search'
@@ -32,6 +33,8 @@ interface Filters {
   language: string | null
   sort: SortMode
   kids: boolean
+  /** Fixed per page-session so every page of a query shares one date window. */
+  now: Date
 }
 
 // Stop auto-paging for sparse results after this many pages; "Load more"
@@ -65,7 +68,7 @@ async function fetchPage(
   }
   return discoverMovies(
     {
-      ...sortOptions(f.sort),
+      ...sortOptions(f.sort, f.now),
       genres: f.genre === null ? undefined : String(f.genre),
       country,
       language: f.language ?? undefined,
@@ -91,11 +94,21 @@ export function SearchPage() {
       ? countryParam!
       : (active?.region ?? WORLDWIDE)
   const langParam = params.get('lang')
-  const language = langParam && langParam in LANGUAGES ? langParam : null
+  const language =
+    langParam && Object.hasOwn(LANGUAGES, langParam) ? langParam : null
   const sortParam = params.get('sort') as SortMode | null
   const sort: SortMode =
     sortParam && SORTS.includes(sortParam) ? sortParam : 'trending'
-  const filters: Filters = { q: urlQuery, genre, country, language, sort, kids }
+  const [now] = useState(() => new Date())
+  const filters: Filters = {
+    q: urlQuery,
+    genre,
+    country,
+    language,
+    sort,
+    kids,
+    now,
+  }
 
   // The input is local state so typing stays instant; the URL follows, debounced.
   const [text, setText] = useState(urlQuery)
@@ -131,7 +144,16 @@ export function SearchPage() {
     queryKey:
       mode === 'search'
         ? ['search-page', 'search', urlQuery, kids, kids ? country : null]
-        : ['search-page', 'browse', country, language, genre, sort, kids],
+        : [
+            'search-page',
+            'browse',
+            country,
+            language,
+            genre,
+            sort,
+            kids,
+            isoDaysAgo(0, now),
+          ],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) =>
       fetchPage(mode, filters, pageParam, signal),
@@ -142,8 +164,8 @@ export function SearchPage() {
   const movies = useMemo(() => {
     const all = uniqueById(query.data?.pages.flatMap(p => p.results) ?? [])
     // Discover/trending already respect the genre/kids rules server-side.
-    return mode === 'search' ? filterResults(all, { genre, language }) : all
-  }, [query.data, mode, genre, language])
+    return mode === 'search' ? filterResults(all, { genre }) : all
+  }, [query.data, mode, genre])
 
   // Load the next page as the sentinel nears the viewport. The button below is
   // the keyboard / no-IntersectionObserver path.
@@ -275,6 +297,7 @@ export function SearchPage() {
         <FilterSelect
           label='Language'
           value={language ?? ''}
+          disabled={mode === 'search'}
           onChange={v => setParam('lang', v || null)}
         >
           <option value=''>All languages</option>
@@ -359,7 +382,11 @@ export function SearchPage() {
         ) : movies.length === 0 && !hasNextPage ? (
           <p className='py-16 text-center text-muted'>
             Nothing found{urlQuery ? ` for “${urlQuery}”` : ''}. Try another
-            title{genre !== null || language ? ' or relax the filters' : ''}.
+            title
+            {genre !== null || (mode === 'browse' && language)
+              ? ' or relax the filters'
+              : ''}
+            .
           </p>
         ) : (
           <>

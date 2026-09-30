@@ -11,7 +11,7 @@ export function useInView<T extends Element>(margin = '0px') {
     const el = ref.current
     if (!el || inView) return
     const io = new IntersectionObserver(
-      ([entry]) => entry.isIntersecting && setInView(true),
+      entries => entries.some(e => e.isIntersecting) && setInView(true),
       { rootMargin: margin },
     )
     io.observe(el)
