@@ -8,7 +8,11 @@ export class TmdbError extends Error {}
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   if (!env.tmdbToken) {
-    throw new TmdbError('Missing VITE_TMDB_TOKEN. See .env.example.')
+    throw new TmdbError(
+      import.meta.env.DEV
+        ? 'Missing VITE_TMDB_TOKEN. See .env.example.'
+        : 'Movies are unavailable right now.',
+    )
   }
   const res = await fetch(`${BASE_URL}${path}`, {
     signal,

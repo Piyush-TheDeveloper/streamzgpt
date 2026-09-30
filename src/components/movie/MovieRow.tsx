@@ -23,7 +23,7 @@ export function MovieRow({
           {error.message}
         </p>
       ) : (
-        <div className='scrollbar-none -mx-4 flex gap-4 overflow-x-auto px-4 py-2 sm:-mx-6 sm:px-6'>
+        <div className='scrollbar-none -mx-4 flex gap-4 overflow-x-auto px-4 py-4 sm:-mx-6 sm:px-6'>
           {isPending
             ? Array.from({ length: 8 }, (_, i) => (
                 <div
