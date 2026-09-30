@@ -5,7 +5,12 @@ import { TrailerButton } from '@/components/movie/TrailerButton'
 import { MovieCard } from '@/components/movie/MovieCard'
 import { heroButtons } from '@/components/movie/buttonStyles'
 import { formatRuntime, releaseYear } from '@/lib/format'
-import { getMovieDetails, getSimilarMovies, imageUrl } from '@/services/tmdb'
+import {
+  getMovieDetails,
+  getRecommendedMovies,
+  imageUrl,
+  TmdbError,
+} from '@/services/tmdb'
 
 export function MovieDetailPage() {
   const id = Number(useParams().id)
@@ -18,16 +23,32 @@ export function MovieDetailPage() {
   })
   const similar = useQuery({
     queryKey: ['movie', id, 'similar'],
-    queryFn: ({ signal }) => getSimilarMovies(id, signal),
+    queryFn: ({ signal }) => getRecommendedMovies(id, signal),
     enabled: valid,
   })
 
   if (!valid || details.isError) {
+    const notFound =
+      !valid ||
+      (details.error instanceof TmdbError && details.error.status === 404)
     return (
       <div className='mx-auto max-w-7xl px-4 py-24 text-center sm:px-6'>
-        <h1 className='text-2xl font-bold'>Movie not found</h1>
-        <p className='mt-2 text-muted'>{details.error?.message}</p>
-        <Link to='/' className='mt-4 inline-block text-brand hover:underline'>
+        <h1 className='text-2xl font-bold'>
+          {notFound ? 'Movie not found' : 'Couldn’t load this movie'}
+        </h1>
+        {!notFound && (
+          <>
+            <p className='mt-2 text-muted'>{details.error?.message}</p>
+            <button
+              type='button'
+              onClick={() => details.refetch()}
+              className='mt-4 rounded-md bg-brand px-4 py-2 text-sm font-semibold hover:bg-brand-hover'
+            >
+              Try again
+            </button>
+          </>
+        )}
+        <Link to='/' className='mt-4 block text-brand hover:underline'>
           Back home
         </Link>
       </div>

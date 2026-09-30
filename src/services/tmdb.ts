@@ -10,7 +10,14 @@ import type {
 const BASE_URL = 'https://api.themoviedb.org/3'
 const IMG_URL = 'https://image.tmdb.org/t/p'
 
-export class TmdbError extends Error {}
+export class TmdbError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message)
+  }
+}
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   if (!env.tmdbToken) {
@@ -27,7 +34,8 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
       Authorization: `Bearer ${env.tmdbToken}`,
     },
   })
-  if (!res.ok) throw new TmdbError(`TMDB request failed (${res.status})`)
+  if (!res.ok)
+    throw new TmdbError(`TMDB request failed (${res.status})`, res.status)
   return res.json() as Promise<T>
 }
 
@@ -42,7 +50,7 @@ export const getMovieDetails = (id: number, signal?: AbortSignal) =>
     signal,
   )
 
-export const getSimilarMovies = (id: number, signal?: AbortSignal) =>
+export const getRecommendedMovies = (id: number, signal?: AbortSignal) =>
   request<Paginated<Movie>>(`/movie/${id}/recommendations?page=1`, signal)
 
 /** Prefer an official YouTube trailer, then any trailer, then a teaser. */
